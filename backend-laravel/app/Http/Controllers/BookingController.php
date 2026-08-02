@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\BookingCancelled;
 use App\Mail\BookingConfirmed;
 use App\Mail\BookingRescheduled;
+use App\Mail\BookingNotification;
 use App\Models\Booking;
 use App\Models\Schedule;
 use App\Models\SeatLock;
@@ -18,6 +19,33 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    // ── Konstanta kebijakan ──────────────────────────────────────────────────
+    private const MAX_RESCHEDULE        = 2;    // maks berapa kali reschedule
+    private const RESCHEDULE_DEADLINE_H = 48;   // jam sebelum keberangkatan SAAT INI
+    private const CANCEL_DEADLINE_H     = 24;   // jam sebelum keberangkatan SAAT INI
+
+    /**
+     * Kirim notifikasi ke user travel/loket saat ada perubahan booking di travel mereka.
+     */
+    private function notifyTravel(Booking $booking, Travel $travel, string $action): void
+    {
+        try {
+            // Cari admin loket (role travel) milik travel ini
+            $lokets = User::where('travel_uid', $travel->uid)
+                ->where('role', 'travel')
+                ->where(function ($q) {
+                    $q->whereNotNull('email')->where('email', '!=', '');
+                })
+                ->pluck('email');
+
+            foreach ($lokets as $email) {
+                Mail::to($email)->send(new BookingNotification($booking, $travel, $action));
+            }
+        } catch (\Exception) {
+            // Silent — jangan gagalkan transaksi jika mail error
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -87,6 +115,9 @@ class BookingController extends Controller
             }
         } catch (\Exception) {}
 
+        // Notifikasi ke travel/loket
+        $this->notifyTravel($booking, $travel, 'created');
+
         return response()->json($booking->toApiArray($travel), 201);
     }
 
@@ -139,11 +170,6 @@ class BookingController extends Controller
 
         return response()->json($booking->toApiArray($travel));
     }
-
-    // ── Konstanta kebijakan ──────────────────────────────────────────────────
-    private const MAX_RESCHEDULE        = 2;    // maks berapa kali reschedule
-    private const RESCHEDULE_DEADLINE_H = 48;   // jam sebelum keberangkatan SAAT INI
-    private const CANCEL_DEADLINE_H     = 24;   // jam sebelum keberangkatan SAAT INI
 
     public function reschedule(Request $request, string $bookingId): JsonResponse
     {
@@ -274,6 +300,9 @@ class BookingController extends Controller
             }
         } catch (\Exception) {}
 
+        // Notifikasi ke travel/loket
+        $this->notifyTravel($booking, $travel, 'rescheduled');
+
         $result               = $booking->toApiArray($travel);
         $result['price_diff'] = $newSched->price - $oldPrice;
 
@@ -327,6 +356,10 @@ class BookingController extends Controller
                 Mail::to($owner->email)->send(new BookingCancelled($booking));
             }
         } catch (\Exception) {}
+
+        // Notifikasi ke travel/loket
+        $travel = Travel::where('uid', $booking->travel_uid)->first();
+        $this->notifyTravel($booking, $travel, 'cancelled');
 
         return response()->json($booking->toApiArray());
     }

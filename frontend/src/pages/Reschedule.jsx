@@ -101,13 +101,24 @@ export default function Reschedule() {
     if (!chosen || !seat) return toast.error("Pilih jadwal dan kursi baru");
     setSubmitting(true);
     try {
-      await api.post(`/bookings/${bookingId}/reschedule`, {
+      const { data: result } = await api.post(`/bookings/${bookingId}/reschedule`, {
         new_schedule_id:  chosen.id,
         new_seat_number:  seat,
         pickup_location:  pickup || undefined,
         dropoff_location: dropoff || undefined,
       });
-      toast.success("Jadwal berhasil diubah");
+      
+      // Tampilkan info selisih harga
+      if (result.price_diff !== undefined && result.price_diff !== 0) {
+        const diff = result.price_diff;
+        if (diff > 0) {
+          toast.success(`✓ Berhasil. Tambahan: +${formatIDR(diff)}`);
+        } else {
+          toast.success(`✓ Berhasil. Potongan: ${formatIDR(Math.abs(diff))}`);
+        }
+      } else {
+        toast.success("✓ Jadwal berhasil diubah");
+      }
       seatRef.current = null;
       navigate(`/ticket/${bookingId}`);
     } catch (e) { toast.error(e.response?.data?.detail || "Gagal reschedule"); }

@@ -89,6 +89,25 @@ export default function TravelDashboard() {
     setAssignOpen(true);
   };
 
+  const toggleManifest = async (scheduleId) => {
+    const isOpen = manifestOpen[scheduleId];
+    setManifestOpen(p => ({ ...p, [scheduleId]: !isOpen }));
+
+    // Jika sudah ada data manifest, tidak perlu fetch ulang
+    if (manifests[scheduleId] || isOpen) return;
+
+    setManifestLoad(p => ({ ...p, [scheduleId]: true }));
+    try {
+      const { data } = await api.get(`/driver/schedules/${scheduleId}/manifest`);
+      setManifests(p => ({ ...p, [scheduleId]: data }));
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal memuat manifest");
+      setManifestOpen(p => ({ ...p, [scheduleId]: false }));
+    } finally {
+      setManifestLoad(p => ({ ...p, [scheduleId]: false }));
+    }
+  };
+
   const submitAssign = async () => {
     if (!assignSchedule) return;
     setAssignLoading(true);
@@ -206,50 +225,106 @@ export default function TravelDashboard() {
               </Dialog>
 
               <div className="rounded-2xl bg-white border border-[#e0e0e0] overflow-hidden">
-                <div className="grid grid-cols-[1fr_1fr_120px_90px_110px_110px_160px_80px] px-5 py-3 border-b border-[#e0e0e0] text-[10px] tracking-[0.25em] uppercase text-[#4b4b4b] bg-[#f2f2f2]">
-                  <div>Rute</div><div>Kendaraan</div><div>Tanggal</div><div>Jam</div><div>Harga</div><div>Terisi</div><div>Supir</div><div></div>
+                <div className="grid grid-cols-[1fr_1fr_120px_90px_110px_110px_160px_100px_80px] px-5 py-3 border-b border-[#e0e0e0] text-[10px] tracking-[0.25em] uppercase text-[#4b4b4b] bg-[#f2f2f2]">
+                  <div>Rute</div><div>Kendaraan</div><div>Tanggal</div><div>Jam</div><div>Harga</div><div>Terisi</div><div>Supir</div><div></div><div></div>
                 </div>
                 {schedules.length === 0 ? (
                   <div className="p-10 text-center text-[#4b4b4b]">Belum ada jadwal.</div>
                 ) : schedules.map((s) => (
-                  <div key={s.id}
-                    className="grid grid-cols-[1fr_1fr_120px_90px_110px_110px_160px_80px] px-5 py-3 border-b border-[#e0e0e0] items-center text-sm"
-                    data-testid={`sched-row-${s.id}`}>
-                    <div className="font-medium">{s.origin} → {s.destination}</div>
-                    <div className="text-[#4b4b4b]">{s.vehicle}</div>
-                    <div className="text-[#4b4b4b]">{s.depart_date}</div>
-                    <div>{s.depart_time}</div>
-                    <div className="font-semibold text-[#8b0000]">{formatIDR(s.price)}</div>
-                    <div>{s.booked}/{s.total_seats}</div>
-                    {/* Supir badge */}
-                    <div>
-                      {s.driver ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-medium"
-                          style={{ background: "rgba(30,58,47,0.08)", color: "#1E3A2F" }}>
-                          <UserCheck className="w-3 h-3" /> {s.driver.name}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-medium"
-                          style={{ background: "rgba(139,0,0,0.06)", color: "#8b0000" }}>
-                          <UserX className="w-3 h-3" /> Belum
-                        </span>
-                      )}
-                    </div>
-                    {/* Aksi */}
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => openAssign(s)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: "#1E3A2F" }} title="Assign supir"
-                        data-testid={`assign-${s.id}`}>
-                        <Users className="w-4 h-4" />
+                  <div key={s.id}>
+                    {/* Row jadwal */}
+                    <div className="grid grid-cols-[1fr_1fr_120px_90px_110px_110px_160px_100px_80px] px-5 py-3 border-b border-[#e0e0e0] items-center text-sm"
+                      data-testid={`sched-row-${s.id}`}>
+                      <div className="font-medium">{s.origin} → {s.destination}</div>
+                      <div className="text-[#4b4b4b]">{s.vehicle}</div>
+                      <div className="text-[#4b4b4b]">{s.depart_date}</div>
+                      <div>{s.depart_time}</div>
+                      <div className="font-semibold text-[#8b0000]">{formatIDR(s.price)}</div>
+                      <div>{s.booked}/{s.total_seats}</div>
+                      {/* Supir badge */}
+                      <div>
+                        {s.driver ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-medium"
+                            style={{ background: "rgba(30,58,47,0.08)", color: "#1E3A2F" }}>
+                            <UserCheck className="w-3 h-3" /> {s.driver.name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full font-medium"
+                            style={{ background: "rgba(139,0,0,0.06)", color: "#8b0000" }}>
+                            <UserX className="w-3 h-3" /> Belum
+                          </span>
+                        )}
+                      </div>
+                      {/* Toggle manifest */}
+                      <button
+                        onClick={() => toggleManifest(s.id)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+                        style={{ color: manifestOpen[s.id] ? "#1E3A2F" : "#4b4b4b" }}
+                        data-testid={`manifest-${s.id}`}>
+                        {manifestLoad[s.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : manifestOpen[s.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </button>
-                      <button onClick={() => del(s.id)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: "#8b0000" }}
-                        data-testid={`del-${s.id}`}>
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Aksi assign & delete */}
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openAssign(s)}
+                          className="p-1.5 rounded-lg transition-colors"
+                          style={{ color: "#1E3A2F" }} title="Assign supir"
+                          data-testid={`assign-${s.id}`}>
+                          <Users className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => del(s.id)}
+                          className="p-1.5 rounded-lg transition-colors"
+                          style={{ color: "#8b0000" }}
+                          data-testid={`del-${s.id}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Manifest penumpang (collapsible) */}
+                    {manifestOpen[s.id] && (
+                      <div style={{ borderBottom: "1px solid #e0e0e0", background: "#f9f8f6" }}>
+                        {manifestLoad[s.id] ? (
+                          <div className="p-4 flex items-center gap-2 text-sm" style={{ color: "#4b4b4b" }}>
+                            <Loader2 className="w-4 h-4 animate-spin" /> Memuat manifest…
+                          </div>
+                        ) : manifests[s.id]?.manifest?.length === 0 ? (
+                          <div className="p-4 text-sm" style={{ color: "#4b4b4b" }}>
+                            Belum ada penumpang.
+                          </div>
+                        ) : (
+                          <div className="px-5 py-3">
+                            <div className="grid grid-cols-[50px_1fr_130px_1fr_1fr] gap-3 text-[9px] tracking-[0.25em] uppercase font-semibold"
+                              style={{ color: "#4b4b4b", marginBottom: "10px" }}>
+                              <div>Kursi</div><div>Penumpang</div><div>No. HP</div><div>Jemput</div><div>Turun</div>
+                            </div>
+                            <div className="space-y-2">
+                              {manifests[s.id]?.manifest?.map(p => (
+                                <div key={p.seat_number} className="grid grid-cols-[50px_1fr_130px_1fr_1fr] gap-3 text-xs items-center p-2 rounded-lg"
+                                  style={{ background: "#fff", border: "1px solid #e0e0e0" }}>
+                                  <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-white text-[10px]"
+                                    style={{ background: "#1E3A2F" }}>
+                                    {p.seat_number}
+                                  </div>
+                                  <div className="font-medium" style={{ color: "#141414" }}>{p.passenger_name}</div>
+                                  <div className="flex items-center gap-1" style={{ color: "#4b4b4b" }}>
+                                    <Phone className="w-3 h-3 flex-shrink-0" /> {p.passenger_phone}
+                                  </div>
+                                  <div className="flex items-center gap-1 truncate" style={{ color: "#4b4b4b" }} title={p.pickup_location}>
+                                    <MapPin className="w-3 h-3 flex-shrink-0" style={{ color: "#8b0000" }} /> {p.pickup_location}
+                                  </div>
+                                  <div className="flex items-center gap-1 truncate" style={{ color: "#4b4b4b" }} title={p.dropoff_location}>
+                                    <Navigation className="w-3 h-3 flex-shrink-0" style={{ color: "#1E3A2F" }} /> {p.dropoff_location}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-3 text-[10px] font-semibold" style={{ color: "#1E3A2F" }}>
+                              Total: {manifests[s.id]?.total ?? 0} penumpang
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
