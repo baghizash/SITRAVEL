@@ -18,8 +18,9 @@ Username	sitravel
 Password	SiTravel@2026
 Database	sitravel -->
 
-Selesai — MySQL + Adminer siap
-Jalankan 3 terminal secara bersamaan:
+<!-- Selesai !!! MySQL + Adminer siap -->
+
+<!-- Jalankan 3 terminal secara bersamaan:
 
 Terminal 1 — Backend Laravel:
 
@@ -38,4 +39,4 @@ Terminal 3 — Adminer (database GUI):
 bash
 
 cd /mnt/nvme0n1p2/Kerja/SI-Travel-main/adminer
-php -S localhost:9090 adminer.php
+php -S localhost:9090 adminer.php -->
