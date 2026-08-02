@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CityController;
+use App\Http\Controllers\DriverController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SeatController;
@@ -45,11 +46,22 @@ Route::middleware('auth:api')->group(function () {
 
     // Schedules
     Route::get('schedules',                [ScheduleController::class, 'index'])
-        ->middleware('role:admin_app,travel,manager');
+        ->middleware('role:admin_app,travel,manager,driver');
     Route::post('schedules',               [ScheduleController::class, 'store'])
         ->middleware('role:admin_app,travel');
     Route::delete('schedules/{scheduleId}',[ScheduleController::class, 'destroy'])
         ->middleware('role:admin_app,travel');
+
+    // Assign supir ke jadwal (loket / admin_app)
+    Route::post('schedules/{scheduleId}/assign-driver', [DriverController::class, 'assignDriver'])
+        ->middleware('role:admin_app,travel');
+
+    // Driver routes
+    Route::prefix('driver')->middleware('role:admin_app,travel,manager,driver')->group(function () {
+        Route::get('schedules',                    [DriverController::class, 'mySchedules']);
+        Route::get('schedules/{scheduleId}/manifest', [DriverController::class, 'manifest']);
+        Route::get('list',                         [DriverController::class, 'listDrivers']);
+    });
 
     // Bookings
     Route::post('bookings',                          [BookingController::class, 'store']);
@@ -59,6 +71,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('bookings/{bookingId}',               [BookingController::class, 'show']);
     Route::post('bookings/{bookingId}/reschedule',   [BookingController::class, 'reschedule']);
     Route::post('bookings/{bookingId}/cancel',       [BookingController::class, 'cancel']);
+    Route::post('bookings/{bookingId}/complete',     [BookingController::class, 'complete'])
+        ->middleware('role:admin_app,travel,manager');
+    Route::post('bookings/{bookingId}/no-show',      [BookingController::class, 'markNoShow'])
+        ->middleware('role:admin_app,travel,manager');
     Route::get('bookings/{bookingId}/ticket.pdf',    [TicketController::class,  'download']);
 
     // Travel Partners

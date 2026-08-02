@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Schedule;
 use App\Models\Travel;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,10 +24,16 @@ class ScheduleController extends Controller
         $travelMap = Travel::whereIn('uid', $schedules->pluck('travel_uid')->unique())
             ->get()->keyBy('uid');
 
-        $results = $schedules->map(function (Schedule $s) use ($travelMap) {
+        $driverUids = $schedules->pluck('driver_uid')->filter()->unique();
+        $driverMap  = User::whereIn('uid', $driverUids)->get()->keyBy('uid');
+
+        $results = $schedules->map(function (Schedule $s) use ($travelMap, $driverMap) {
             $booked = Booking::where('schedule_uid', $s->uid)
                 ->where('status', '!=', 'cancelled')->count();
-            $arr          = $s->toApiArray($travelMap[$s->travel_uid] ?? null);
+            $driverArr    = isset($s->driver_uid, $driverMap[$s->driver_uid])
+                ? $driverMap[$s->driver_uid]->toApiArray()
+                : null;
+            $arr           = $s->toApiArray($travelMap[$s->travel_uid] ?? null, null, $driverArr);
             $arr['booked'] = $booked;
             return $arr;
         });

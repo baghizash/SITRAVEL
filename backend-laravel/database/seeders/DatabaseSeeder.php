@@ -77,6 +77,11 @@ class DatabaseSeeder extends Seeder
         $this->upsertUser('manager@sitravel.id','Kepala Riau Express',      'manager',  'Manager@2026', $travelMap['REX']->uid);
         $this->upsertUser('user@sitravel.id',   'Budi Santoso',             'pengguna', 'User@2026',    null, '081234567890');
 
+        // ── Supir (driver) ────────────────────────────────────
+        $this->upsertUser('supir1@sitravel.id', 'Ahmad Fauzi',     'driver', 'Driver@2026', $travelMap['REX']->uid, '08111111111');
+        $this->upsertUser('supir2@sitravel.id', 'Rizal Hamdani',   'driver', 'Driver@2026', $travelMap['REX']->uid, '08122222222');
+        $this->upsertUser('supir3@sitravel.id', 'Dedi Kurniawan',  'driver', 'Driver@2026', $travelMap['MLT']->uid, '08133333333');
+
         // ── Schedules: 14 hari ke depan ───────────────────────
         $today = Carbon::today();
         foreach (range(0, 13) as $i) {
@@ -112,7 +117,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->command->info('✅ Seeder selesai: cities, travels, users, schedules.');
+        $this->command->info('✅ Seeder selesai: cities, travels, users (termasuk supir), schedules.');
     }
 
     private function upsertUser(

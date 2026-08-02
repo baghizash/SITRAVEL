@@ -11,7 +11,8 @@ class Booking extends Model
         'uid', 'booking_code', 'user_uid', 'schedule_uid', 'travel_uid',
         'origin', 'destination', 'depart_date', 'depart_time',
         'price', 'seat_number', 'passenger_name', 'passenger_phone',
-        'notes', 'status', 'reschedule_history', 'rescheduled_at', 'cancelled_at',
+        'notes', 'pickup_location', 'dropoff_location',
+        'status', 'reschedule_history', 'rescheduled_at', 'cancelled_at',
     ];
 
     protected $hidden = ['id'];
@@ -61,8 +62,11 @@ class Booking extends Model
             'passenger_name'     => $this->passenger_name,
             'passenger_phone'    => $this->passenger_phone,
             'notes'              => $this->notes ?? '',
+            'pickup_location'    => $this->pickup_location ?? '',
+            'dropoff_location'   => $this->dropoff_location ?? '',
             'status'             => $this->status,
             'reschedule_history' => $this->reschedule_history ?? [],
+            'reschedule_count'   => count($this->reschedule_history ?? []),
             'rescheduled_at'     => $this->rescheduled_at?->toISOString(),
             'cancelled_at'       => $this->cancelled_at?->toISOString(),
             'travel'             => $travel?->toApiArray(),

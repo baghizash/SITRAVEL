@@ -36,6 +36,7 @@ export function roleLabel(role) {
       travel: "Admin Loket",
       manager: "Manager/Kepala",
       pengguna: "Pengguna",
+      driver: "Supir",
     }[role] || role
   );
 }

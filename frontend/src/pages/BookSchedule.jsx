@@ -17,13 +17,15 @@ export default function BookSchedule() {
   const navigate       = useNavigate();
   const sessionId      = useRef(getSessionId()).current;
 
-  const [data,         setData]         = useState(null);
-  const [loading,      setLoading]      = useState(true);
-  const [seat,         setSeat]         = useState(null);
-  const [name,         setName]         = useState("");
-  const [phone,        setPhone]        = useState("");
-  const [submitting,   setSubmitting]   = useState(false);
-  const [confirmation, setConfirmation] = useState(null);
+  const [data,           setData]         = useState(null);
+  const [loading,        setLoading]      = useState(true);
+  const [seat,           setSeat]         = useState(null);
+  const [name,           setName]         = useState("");
+  const [phone,          setPhone]        = useState("");
+  const [pickup,         setPickup]       = useState("");
+  const [dropoff,        setDropoff]      = useState("");
+  const [submitting,     setSubmitting]   = useState(false);
+  const [confirmation,   setConfirmation] = useState(null);
   const seatRef = useRef(null);
 
   const refresh = async () => {
@@ -67,9 +69,18 @@ export default function BookSchedule() {
     if (!user || user === false) { toast.error("Silakan login terlebih dahulu"); return navigate(`/login?next=/book/${scheduleId}`); }
     if (!seat)         return toast.error("Pilih kursi terlebih dahulu");
     if (!name || !phone) return toast.error("Isi nama & nomor HP penumpang");
+    if (!pickup)       return toast.error("Isi lokasi jemput");
     setSubmitting(true);
     try {
-      const { data: d } = await api.post("/bookings", { schedule_id: scheduleId, seat_number: seat, passenger_name: name, passenger_phone: phone, notes: "" });
+      const { data: d } = await api.post("/bookings", {
+        schedule_id:      scheduleId,
+        seat_number:      seat,
+        passenger_name:   name,
+        passenger_phone:  phone,
+        notes:            "",
+        pickup_location:  pickup,
+        dropoff_location: dropoff || undefined,
+      });
       seatRef.current = null; setConfirmation(d); toast.success("Booking berhasil!");
     } catch (e) { toast.error(e.response?.data?.detail || "Gagal booking"); refresh(); }
     finally { setSubmitting(false); }
@@ -104,6 +115,7 @@ export default function BookSchedule() {
               ["Rute", `${confirmation.origin} → ${confirmation.destination}`],
               ["Berangkat", `${confirmation.depart_date} · ${confirmation.depart_time}`],
               ["Penumpang", confirmation.passenger_name],
+              ["Lokasi Jemput", confirmation.pickup_location || "-"],
               ["Total Bayar", formatIDR(confirmation.price)],
             ].map(([l, v]) => (
               <div key={l}>
@@ -235,6 +247,24 @@ export default function BookSchedule() {
                 <Input id="pphone" value={phone} onChange={e => setPhone(e.target.value)}
                   className="mt-1 rounded-xl" style={{ borderColor: "#e0e0e0" }}
                   data-testid="passenger-phone-input" />
+              </div>
+              <div>
+                <Label htmlFor="pickup" className="text-xs tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>
+                  Lokasi Jemput <span style={{ color: "#8b0000" }}>*</span>
+                </Label>
+                <Input id="pickup" value={pickup} onChange={e => setPickup(e.target.value)}
+                  placeholder="Contoh: Jl. Sudirman No. 10"
+                  className="mt-1 rounded-xl" style={{ borderColor: "#e0e0e0" }}
+                  data-testid="pickup-location-input" />
+              </div>
+              <div>
+                <Label htmlFor="dropoff" className="text-xs tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>
+                  Lokasi Turun <span style={{ color: "#687076", fontWeight: 400 }}>(opsional)</span>
+                </Label>
+                <Input id="dropoff" value={dropoff} onChange={e => setDropoff(e.target.value)}
+                  placeholder={`Default: ${data?.schedule?.destination ?? "kota tujuan"}`}
+                  className="mt-1 rounded-xl" style={{ borderColor: "#e0e0e0" }}
+                  data-testid="dropoff-location-input" />
               </div>
             </div>
 

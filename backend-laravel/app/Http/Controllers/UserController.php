@@ -22,13 +22,13 @@ class UserController extends Controller
             'name'       => 'required|string',
             'email'      => 'required|email|unique:users,email',
             'password'   => 'required|string|min:6',
-            'role'       => 'required|in:admin_app,travel,manager,pengguna',
+            'role'       => 'required|in:admin_app,travel,manager,pengguna,driver',
             'phone'      => 'nullable|string',
             'travel_id'  => 'nullable|string',
         ]);
 
-        if (in_array($data['role'], ['travel', 'manager']) && empty($data['travel_id'])) {
-            return response()->json(['detail' => 'travel_id wajib untuk peran travel/manager'], 400);
+        if (in_array($data['role'], ['travel', 'manager', 'driver']) && empty($data['travel_id'])) {
+            return response()->json(['detail' => 'travel_id wajib untuk peran travel/manager/driver'], 400);
         }
 
         if (! empty($data['travel_id'])) {

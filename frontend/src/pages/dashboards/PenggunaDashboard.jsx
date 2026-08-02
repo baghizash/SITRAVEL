@@ -2,11 +2,50 @@ import { useEffect, useState } from "react";
 import DashboardShell, { StatCard } from "@/components/DashboardShell";
 import { api, formatIDR } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { Ticket, MapPin, Loader2, Download, XCircle, RotateCw, User, KeyRound, CheckCircle2, Printer } from "lucide-react";
+import { Ticket, MapPin, Loader2, Download, XCircle, RotateCw, User, KeyRound, CheckCircle2, Printer, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { differenceInHours } from "date-fns";
+
+const RESCHEDULE_DEADLINE_H = 48;
+const CANCEL_DEADLINE_H     = 24;
+const MAX_RESCHEDULE        = 2;
+
+/** Hitung sisa jam dari sekarang ke waktu keberangkatan */
+function hoursUntilDepart(b) {
+  return differenceInHours(
+    new Date(`${b.depart_date}T${b.depart_time}`),
+    new Date()
+  );
+}
+
+function canReschedule(b) {
+  if (b.status === "cancelled") return false;
+  if ((b.reschedule_count ?? 0) >= MAX_RESCHEDULE) return false;
+  return hoursUntilDepart(b) >= RESCHEDULE_DEADLINE_H;
+}
+
+function canCancel(b) {
+  if (b.status === "cancelled") return false;
+  return hoursUntilDepart(b) >= CANCEL_DEADLINE_H;
+}
+
+function rescheduleTooltip(b) {
+  if (b.status === "cancelled")                         return "Booking sudah dibatalkan";
+  if ((b.reschedule_count ?? 0) >= MAX_RESCHEDULE)     return `Batas reschedule ${MAX_RESCHEDULE}x telah tercapai`;
+  const h = hoursUntilDepart(b);
+  if (h < RESCHEDULE_DEADLINE_H)                        return `Reschedule ditutup ${RESCHEDULE_DEADLINE_H} jam sebelum berangkat (sisa ${h < 0 ? "0" : h} jam)`;
+  return "";
+}
+
+function cancelTooltip(b) {
+  if (b.status === "cancelled") return "Booking sudah dibatalkan";
+  const h = hoursUntilDepart(b);
+  if (h < CANCEL_DEADLINE_H)    return `Pembatalan ditutup ${CANCEL_DEADLINE_H} jam sebelum berangkat (sisa ${h < 0 ? "0" : h} jam)`;
+  return "";
+}
 
 export default function PenggunaDashboard() {
   const [tab,      setTab]      = useState("bookings");
@@ -93,10 +132,10 @@ export default function PenggunaDashboard() {
                     </div>
 
                     <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <Info label="Rute"      value={`${b.origin} → ${b.destination}`} />
-                      <Info label="Berangkat" value={`${b.depart_date} · ${b.depart_time}`} />
-                      <Info label="Kursi"     value={`#${b.seat_number}`} />
-                      <Info label="Total"     value={formatIDR(b.price)} />
+                      <Info label="Rute"           value={`${b.origin} → ${b.destination}`} />
+                      <Info label="Berangkat"      value={`${b.depart_date} · ${b.depart_time}`} />
+                      <Info label="Kursi"          value={`#${b.seat_number}`} />
+                      <Info label="Lokasi Jemput"  value={b.pickup_location || "-"} />
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -118,18 +157,44 @@ export default function PenggunaDashboard() {
                             data-testid={`pdf-${b.id}`}>
                             <Download className="w-3 h-3" /> PDF
                           </button>
-                          <Link to={`/reschedule/${b.id}`} data-testid={`reschedule-${b.id}`}>
-                            <button className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-                              style={{ border: "1px solid #8b0000", color: "#8b0000" }}>
-                              <RotateCw className="w-3 h-3" /> Reschedule
+                          {/* Reschedule — dengan cek batas */}
+                          {canReschedule(b) ? (
+                            <Link to={`/reschedule/${b.id}`} data-testid={`reschedule-${b.id}`}>
+                              <button className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                                style={{ border: "1px solid #8b0000", color: "#8b0000" }}>
+                                <RotateCw className="w-3 h-3" />
+                                Reschedule
+                                {(b.reschedule_count ?? 0) > 0 && (
+                                  <span className="ml-1 opacity-60">{b.reschedule_count}/{MAX_RESCHEDULE}</span>
+                                )}
+                              </button>
+                            </Link>
+                          ) : (
+                            <span title={rescheduleTooltip(b)}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium cursor-not-allowed"
+                              style={{ border: "1px solid #e0e0e0", color: "#b0b0b0" }}
+                              data-testid={`reschedule-blocked-${b.id}`}>
+                              <RotateCw className="w-3 h-3" />
+                              Reschedule
+                              <AlertCircle className="w-3 h-3" />
+                            </span>
+                          )}
+                          {/* Cancel — dengan cek batas waktu */}
+                          {canCancel(b) ? (
+                            <button onClick={() => cancel(b.id)}
+                              className="p-1.5 rounded-full transition-colors"
+                              style={{ color: "#8b0000" }}
+                              data-testid={`cancel-booking-${b.id}`}>
+                              <XCircle className="w-4 h-4" />
                             </button>
-                          </Link>
-                          <button onClick={() => cancel(b.id)}
-                            className="p-1.5 rounded-full transition-colors"
-                            style={{ color: "#8b0000" }}
-                            data-testid={`cancel-booking-${b.id}`}>
-                            <XCircle className="w-4 h-4" />
-                          </button>
+                          ) : (
+                            <span title={cancelTooltip(b)}
+                              className="p-1.5 rounded-full cursor-not-allowed"
+                              style={{ color: "#c0c0c0" }}
+                              data-testid={`cancel-blocked-${b.id}`}>
+                              <XCircle className="w-4 h-4" />
+                            </span>
+                          )}
                         </>
                       )}
                     </div>

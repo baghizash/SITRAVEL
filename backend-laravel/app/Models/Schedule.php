@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 class Schedule extends Model
 {
     protected $fillable = [
-        'uid', 'travel_uid', 'origin', 'destination',
+        'uid', 'travel_uid', 'driver_uid', 'origin', 'destination',
         'depart_date', 'depart_time', 'price', 'total_seats', 'vehicle',
     ];
 
@@ -40,11 +40,13 @@ class Schedule extends Model
                     ->where('status', '!=', 'cancelled');
     }
 
-    public function toApiArray(?Travel $travel = null, ?int $seatsAvailable = null): array
+    public function toApiArray(?Travel $travel = null, ?int $seatsAvailable = null, ?array $driver = null): array
     {
         return [
             'id'              => $this->uid,
             'travel_id'       => $this->travel_uid,
+            'driver_uid'      => $this->driver_uid,
+            'driver'          => $driver,
             'origin'          => $this->origin,
             'destination'     => $this->destination,
             'depart_date'     => $this->depart_date instanceof \Carbon\Carbon

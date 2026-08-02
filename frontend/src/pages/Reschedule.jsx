@@ -1,15 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
 import { api, formatIDR } from "@/lib/api";
 import { getSessionId } from "@/lib/session";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarDays, Loader2, ArrowRight, Bus, Clock, RadioTower, RotateCw } from "lucide-react";
-import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarDays, Loader2, ArrowRight, Bus, Clock, RadioTower, RotateCw, AlertTriangle, Info } from "lucide-react";
+import { format, differenceInHours, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { toast } from "sonner";
 
+const MAX_RESCHEDULE        = 2;   // harus sinkron dengan BookingController::MAX_RESCHEDULE
+const RESCHEDULE_DEADLINE_H = 48;  // jam sebelum keberangkatan
 const POLL_MS = 3000;
 
 export default function Reschedule() {
@@ -24,12 +28,29 @@ export default function Reschedule() {
   const [chosen,     setChosen]     = useState(null);
   const [seats,      setSeats]      = useState({ taken_seats: [], locked_by_others: [], schedule: null });
   const [seat,       setSeat]       = useState(null);
+  const [pickup,     setPickup]     = useState("");
+  const [dropoff,    setDropoff]    = useState("");
   const seatRef   = useRef(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Computed: cek batas reschedule ──────────────────────────────────────
+  const rescheduleCount  = booking?.reschedule_count ?? 0;
+  const rescheduleBlocked = useMemo(() => {
+    if (!booking) return { blocked: false, reason: "" };
+    if (rescheduleCount >= MAX_RESCHEDULE)
+      return { blocked: true, reason: `Batas reschedule (${MAX_RESCHEDULE}x) telah tercapai.` };
+    const departAt   = new Date(`${booking.depart_date}T${booking.depart_time}`);
+    const hoursLeft  = differenceInHours(departAt, new Date());
+    if (hoursLeft < RESCHEDULE_DEADLINE_H)
+      return { blocked: true, reason: `Reschedule hanya bisa dilakukan minimal ${RESCHEDULE_DEADLINE_H} jam sebelum keberangkatan. Sisa waktu: ${hoursLeft < 0 ? "sudah berangkat" : `${hoursLeft} jam`}.` };
+    return { blocked: false, reason: "" };
+  }, [booking, rescheduleCount]);
 
   useEffect(() => {
     api.get(`/bookings/${bookingId}`).then(({ data }) => {
       setBooking(data);
+      setPickup(data.pickup_location || "");
+      setDropoff(data.dropoff_location || "");
       const orig = new Date(data.depart_date);
       const today = new Date(); today.setHours(0,0,0,0);
       setDate(orig >= today ? orig : today);
@@ -80,7 +101,12 @@ export default function Reschedule() {
     if (!chosen || !seat) return toast.error("Pilih jadwal dan kursi baru");
     setSubmitting(true);
     try {
-      await api.post(`/bookings/${bookingId}/reschedule`, { new_schedule_id: chosen.id, new_seat_number: seat });
+      await api.post(`/bookings/${bookingId}/reschedule`, {
+        new_schedule_id:  chosen.id,
+        new_seat_number:  seat,
+        pickup_location:  pickup || undefined,
+        dropoff_location: dropoff || undefined,
+      });
       toast.success("Jadwal berhasil diubah");
       seatRef.current = null;
       navigate(`/ticket/${bookingId}`);
@@ -106,10 +132,19 @@ export default function Reschedule() {
       <SiteHeader />
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-10">
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="text-[10px] tracking-[0.3em] uppercase font-semibold" style={{ color: "#8b0000" }}>Reschedule</div>
           <div className="flex items-center gap-1.5 text-[10px] tracking-[0.25em] uppercase" style={{ color: "#4b4b4b" }}>
             <RadioTower className="w-3 h-3 animate-pulse" style={{ color: "#8b0000" }} /> Live sync
+          </div>
+          {/* Badge sisa reschedule */}
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider"
+            style={{
+              background: rescheduleCount >= MAX_RESCHEDULE ? "rgba(139,0,0,0.1)" : "rgba(30,58,47,0.08)",
+              color:      rescheduleCount >= MAX_RESCHEDULE ? "#8b0000" : "#1E3A2F",
+            }}>
+            <Info className="w-3 h-3" />
+            Reschedule {rescheduleCount}/{MAX_RESCHEDULE}x
           </div>
         </div>
         <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-1" style={{ color: "#141414" }}>
@@ -119,11 +154,25 @@ export default function Reschedule() {
           Rute tetap: <b>{booking.origin}</b> <ArrowRight className="inline w-4 h-4 mx-1" style={{ color: "#8b0000" }} /> <b>{booking.destination}</b>
         </p>
 
+        {/* Banner blokir jika tidak bisa reschedule */}
+        {rescheduleBlocked.blocked && (
+          <div className="mt-4 flex items-start gap-3 rounded-xl p-4"
+            style={{ background: "rgba(139,0,0,0.06)", border: "1px solid rgba(139,0,0,0.15)" }}>
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#8b0000" }} />
+            <div>
+              <div className="text-sm font-semibold" style={{ color: "#8b0000" }}>Reschedule tidak tersedia</div>
+              <div className="text-sm mt-0.5" style={{ color: "#4b4b4b" }}>{rescheduleBlocked.reason}</div>
+            </div>
+          </div>
+        )}
+
         {/* Current booking info */}
         <div className="mt-6 rounded-2xl p-5 grid grid-cols-2 gap-4" style={{ background: "#fff", border: "1px solid #e0e0e0" }}>
           {[
             ["Jadwal saat ini", `${booking.depart_date} · ${booking.depart_time}`],
             ["Kursi saat ini",  `#${booking.seat_number}`],
+            ["Lokasi Jemput",   booking.pickup_location  || "-"],
+            ["Lokasi Turun",    booking.dropoff_location || "-"],
           ].map(([l, v]) => (
             <div key={l}>
               <div className="text-[10px] tracking-[0.25em] uppercase" style={{ color: "#4b4b4b" }}>{l}</div>
@@ -248,9 +297,31 @@ export default function Reschedule() {
                 </div>
               </div>
 
-              <button onClick={submit} disabled={submitting || !chosen || !seat}
+              {/* Lokasi jemput/turun — bisa diubah saat reschedule */}
+              <div className="mt-4 space-y-3">
+                <div>
+                  <Label className="text-xs tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>
+                    Lokasi Jemput <span style={{ color: "#8b0000" }}>*</span>
+                  </Label>
+                  <Input value={pickup} onChange={e => setPickup(e.target.value)}
+                    placeholder="Contoh: Jl. Sudirman No. 10"
+                    className="mt-1 rounded-xl" style={{ borderColor: "#e0e0e0" }}
+                    data-testid="resched-pickup-input" />
+                </div>
+                <div>
+                  <Label className="text-xs tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>
+                    Lokasi Turun <span style={{ color: "#687076", fontWeight: 400 }}>(opsional)</span>
+                  </Label>
+                  <Input value={dropoff} onChange={e => setDropoff(e.target.value)}
+                    placeholder={booking?.destination ?? "kota tujuan"}
+                    className="mt-1 rounded-xl" style={{ borderColor: "#e0e0e0" }}
+                    data-testid="resched-dropoff-input" />
+                </div>
+              </div>
+
+              <button onClick={submit} disabled={submitting || !chosen || !seat || rescheduleBlocked.blocked}
                 className="mt-6 w-full h-12 rounded-full text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                style={{ background: (submitting || !chosen || !seat) ? "#4b4b4b" : "#8b0000" }}
+                style={{ background: (submitting || !chosen || !seat || rescheduleBlocked.blocked) ? "#4b4b4b" : "#8b0000" }}
                 data-testid="confirm-reschedule-btn">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RotateCw className="w-4 h-4" /> Konfirmasi Reschedule</>}
               </button>

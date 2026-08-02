@@ -146,12 +146,13 @@ export default function AdminDashboard() {
                           <SelectContent>
                             <SelectItem value="travel">Admin Loket (Travel)</SelectItem>
                             <SelectItem value="manager">Manager/Kepala</SelectItem>
+                            <SelectItem value="driver">Supir</SelectItem>
                             <SelectItem value="admin_app">Admin Aplikasi</SelectItem>
                             <SelectItem value="pengguna">Pengguna</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      {(uForm.role === "travel" || uForm.role === "manager") && (
+                      {(uForm.role === "travel" || uForm.role === "manager" || uForm.role === "driver") && (
                         <div>
                           <Label className="text-xs tracking-[0.2em] uppercase text-[#7C8489]">Travel</Label>
                           <Select value={uForm.travel_id} onValueChange={(v)=>setUForm({...uForm, travel_id:v})}>
