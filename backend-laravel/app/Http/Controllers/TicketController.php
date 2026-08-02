@@ -8,6 +8,7 @@ use App\Models\Travel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TicketController extends Controller
 {
@@ -40,7 +41,15 @@ class TicketController extends Controller
         $travel   = Travel::where('uid', $booking->travel_uid)->first();
         $schedule = Schedule::where('uid', $booking->schedule_uid)->first();
 
-        $pdf = Pdf::loadView('pdf.eticket', compact('booking', 'travel', 'schedule'))
+        // Generate QR code sebagai SVG inline
+        $qrSvg = base64_encode(
+            QrCode::format('svg')
+                ->size(90)
+                ->margin(1)
+                ->generate($booking->booking_code)
+        );
+
+        $pdf = Pdf::loadView('pdf.eticket', compact('booking', 'travel', 'schedule', 'qrSvg'))
             ->setPaper([0, 0, 595, 320], 'landscape')  // custom ukuran tiket
             ->setOptions([
                 'defaultFont'       => 'DejaVu Sans',

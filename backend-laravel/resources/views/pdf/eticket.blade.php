@@ -103,7 +103,11 @@
     {{-- QR Code area --}}
     <div class="qr-col">
       <div class="qr-box">
-        <div class="qr-code">{{ $booking->booking_code }}</div>
+        @if(!empty($qrSvg))
+          <img src="data:image/svg+xml;base64,{{ $qrSvg }}" width="80" height="80" alt="QR Code" />
+        @else
+          <div class="qr-code">{{ $booking->booking_code }}</div>
+        @endif
       </div>
       <div class="qr-label">Tunjukkan ke petugas</div>
     </div>
