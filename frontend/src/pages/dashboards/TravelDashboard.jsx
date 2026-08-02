@@ -1,0 +1,191 @@
+import { useEffect, useState } from "react";
+import DashboardShell, { StatCard } from "@/components/DashboardShell";
+import { api, formatIDR } from "@/lib/api";
+import { CalendarDays, Ticket, Plus, Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+
+const CITIES_FALLBACK = ["Pekanbaru","Dumai","Duri","Bagansiapiapi","Rengat","Bengkalis","Selatpanjang","Tembilahan","Bangkinang","Siak Sri Indrapura"];
+
+export default function TravelDashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [schedules, setSchedules] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [cities, setCities] = useState(CITIES_FALLBACK);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    origin: "Pekanbaru", destination: "Dumai",
+    depart_date: new Date().toISOString().slice(0, 10),
+    depart_time: "08:00", price: 90000, total_seats: 16, vehicle: "Minibus 16 Seat",
+  });
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([api.get("/stats"), api.get("/schedules"), api.get("/bookings"), api.get("/cities")])
+      .then(([s, sc, b, c]) => { setStats(s.data); setSchedules(sc.data); setBookings(b.data); setCities(c.data.map(x=>x.name)); })
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  const submit = async () => {
+    if (!user?.travel_id) return toast.error("Akun Anda belum terhubung ke travel");
+    try {
+      await api.post("/schedules", { ...form, travel_id: user.travel_id, price: Number(form.price), total_seats: Number(form.total_seats) });
+      toast.success("Jadwal dibuat");
+      setOpen(false);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal membuat jadwal");
+    }
+  };
+
+  const del = async (id) => {
+    if (!confirm("Hapus jadwal ini?")) return;
+    try {
+      await api.delete(`/schedules/${id}`);
+      toast.success("Jadwal dihapus");
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal");
+    }
+  };
+
+  return (
+    <DashboardShell
+      title="Dashboard Loket"
+      subtitle="Kelola jadwal & pemesanan"
+      nav={[
+        { key: "sched", label: "Jadwal", icon: CalendarDays, active: true },
+        { key: "book", label: "Pemesanan", icon: Ticket },
+      ]}
+    >
+      {loading ? (
+        <div className="flex items-center gap-2 text-[#4A5257]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <StatCard label="Jadwal" value={stats?.total_schedules ?? 0} />
+            <StatCard label="Booking" value={stats?.total_bookings ?? 0} />
+            <StatCard label="Berangkat Hari Ini" value={stats?.today_bookings ?? 0} />
+            <StatCard label="Pendapatan" value={formatIDR(stats?.revenue ?? 0)} />
+          </div>
+
+          <Tabs defaultValue="schedules" className="mt-10">
+            <TabsList className="bg-white border border-[#E6E2D8]">
+              <TabsTrigger value="schedules" data-testid="tab-schedules">Jadwal</TabsTrigger>
+              <TabsTrigger value="bookings" data-testid="tab-bookings">Pemesanan</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="schedules" className="mt-6">
+              <div className="flex justify-end mb-4">
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="new-schedule-btn">
+                      <Plus className="w-4 h-4 mr-1" /> Tambah Jadwal
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-white">
+                    <DialogHeader><DialogTitle className="font-display text-2xl">Tambah Jadwal Baru</DialogTitle></DialogHeader>
+                    <div className="grid grid-cols-2 gap-3">
+                      <CitySelect label="Asal" value={form.origin} onChange={(v)=>setForm({...form, origin:v})} cities={cities} testid="sf-origin" />
+                      <CitySelect label="Tujuan" value={form.destination} onChange={(v)=>setForm({...form, destination:v})} cities={cities} testid="sf-dest" />
+                      <FormField label="Tanggal" type="date" value={form.depart_date} onChange={(e)=>setForm({...form, depart_date:e.target.value})} testid="sf-date" />
+                      <FormField label="Jam" type="time" value={form.depart_time} onChange={(e)=>setForm({...form, depart_time:e.target.value})} testid="sf-time" />
+                      <FormField label="Harga (Rp)" type="number" value={form.price} onChange={(e)=>setForm({...form, price:e.target.value})} testid="sf-price" />
+                      <FormField label="Total Kursi" type="number" value={form.total_seats} onChange={(e)=>setForm({...form, total_seats:e.target.value})} testid="sf-seats" />
+                      <div className="col-span-2">
+                        <FormField label="Kendaraan" value={form.vehicle} onChange={(e)=>setForm({...form, vehicle:e.target.value})} testid="sf-vehicle" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={submit} className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="sf-submit">Simpan</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="rounded-2xl bg-white border border-[#E6E2D8] overflow-hidden">
+                <div className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#E6E2D8] text-[10px] tracking-[0.25em] uppercase text-[#7C8489] bg-[#F5F2EC]">
+                  <div>Rute</div><div>Kendaraan</div><div>Tanggal</div><div>Jam</div><div>Harga</div><div>Terisi</div><div></div>
+                </div>
+                {schedules.length === 0 ? (
+                  <div className="p-10 text-center text-[#4A5257]">Belum ada jadwal.</div>
+                ) : (
+                  schedules.map((s) => (
+                    <div key={s.id} className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#E6E2D8] items-center text-sm" data-testid={`sched-row-${s.id}`}>
+                      <div className="font-medium">{s.origin} → {s.destination}</div>
+                      <div className="text-[#4A5257]">{s.vehicle}</div>
+                      <div className="text-[#4A5257]">{s.depart_date}</div>
+                      <div>{s.depart_time}</div>
+                      <div className="font-semibold text-[#8B2520]">{formatIDR(s.price)}</div>
+                      <div>{s.booked}/{s.total_seats}</div>
+                      <button onClick={() => del(s.id)} className="text-[#8B2520] hover:text-[#14281F]" data-testid={`del-${s.id}`}><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bookings" className="mt-6">
+              <div className="rounded-2xl bg-white border border-[#E6E2D8] overflow-hidden">
+                <div className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#E6E2D8] text-[10px] tracking-[0.25em] uppercase text-[#7C8489] bg-[#F5F2EC]">
+                  <div>Kode</div><div>Penumpang</div><div>Rute</div><div>Berangkat</div><div>Kursi</div><div>Total</div>
+                </div>
+                {bookings.length === 0 ? (
+                  <div className="p-10 text-center text-[#4A5257]">Belum ada pemesanan.</div>
+                ) : (
+                  bookings.map((b) => (
+                    <div key={b.id} className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#E6E2D8] items-center text-sm">
+                      <div className="font-mono text-xs">{b.booking_code}</div>
+                      <div>
+                        <div className="font-medium">{b.passenger_name}</div>
+                        <div className="text-xs text-[#7C8489]">{b.passenger_phone}</div>
+                      </div>
+                      <div>{b.origin} → {b.destination}</div>
+                      <div>{b.depart_date} · {b.depart_time}</div>
+                      <div>#{b.seat_number}</div>
+                      <div className="font-semibold text-[#8B2520]">{formatIDR(b.price)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+    </DashboardShell>
+  );
+}
+
+function FormField({ label, testid, ...props }) {
+  return (
+    <div>
+      <Label className="text-xs tracking-[0.2em] uppercase text-[#7C8489]">{label}</Label>
+      <Input className="mt-1 rounded-lg border-[#E6E2D8]" data-testid={testid} {...props} />
+    </div>
+  );
+}
+
+function CitySelect({ label, value, onChange, cities, testid }) {
+  return (
+    <div>
+      <Label className="text-xs tracking-[0.2em] uppercase text-[#7C8489]">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="mt-1 rounded-lg border-[#E6E2D8]" data-testid={testid}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {cities.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}

@@ -1,0 +1,31 @@
+{
+  "summary": "Phase 2 testing (cancel booking, e-ticket page, admin creates users, logout-to-landing, toast position). Backend: extended /app/backend/tests/backend_test.py with 7 new tests; all 26/26 pytest tests pass (19 regression + 7 new). New endpoints verified: POST /api/bookings/{id}/cancel (200 owner, 400 second-cancel, 403 non-owner), GET /api/bookings/{id} (owner + admin OK, non-owner 403, travel enrichment present), POST /api/users (admin-only 403 for non-admin, role=travel/manager requires travel_id 400, invalid travel_id 400, email uniqueness 400, success returns doc without password_hash). Frontend: E2E tested via Playwright — pengguna login → book fresh schedule → confirmation page → 'Lihat E-Tiket' (conf-ticket-btn) navigates to /ticket/:id which renders full e-ticket (booking_code TR*, route Pekanbaru→Dumai, seat, price Rp, Cetak Tiket button). Dashboard shows E-Tiket + XCircle cancel buttons for confirmed bookings. Clicking cancel + confirming dialog fires toast 'Booking dibatalkan' and refreshes list with status='cancelled' on that row. Logout from both pengguna and admin dashboards now correctly returns to '/' (landing) — Phase 1 UX deviation is fixed. Admin dashboard 'Pengguna' tab has 'Buat Akun' button opening modal; role=travel displays travel dropdown populated with 4 travels; submitting creates the user (backend confirmed). Only very minor UX nit: after creating a new user via admin modal, the Tabs component appears to reset to the first (Mitra Travel) tab, so the admin must click 'Pengguna' again to see the newly-added user (data is persisted correctly). Everything else works as specified.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin dashboard – Pengguna tab", "issues": ["After successfully creating a user via 'Buat Akun' modal, the active tab appears to reset from 'Pengguna' back to 'Mitra Travel'. New user IS persisted (verified via backend), user just needs to click 'Pengguna' again. Minor UX regression."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "OPTIONAL/MINOR: Keep 'Pengguna' tab active after admin creates a new user (Tabs is uncontrolled with defaultValue='travels' — either switch to controlled Tabs with value/onValueChange or avoid full re-render that snaps state)."
+  ],
+  "critical_code_review_comments": [
+    "server.py POST /api/users: does not enforce that a pengguna cannot have travel_id — currently, admin can pass travel_id for role=pengguna and it will be saved. Consider ignoring/clearing travel_id when role in ('pengguna','admin_app'). Frontend already strips it, so cosmetic only.",
+    "server.py GET /api/bookings/{id}: returns travel doc via find_one — good — but does not exclude fields; travel doc contains created_at/description which is fine but consider a lean projection.",
+    "server.py cancel_booking: no restriction on cancelling a booking whose depart_date is in the past. Consider blocking cancel for already-departed schedules (business rule; may or may not be desired).",
+    "ETicket.jsx: booking.status.toUpperCase() will throw if status is undefined; today it is always set, but defensive check is cheap.",
+    "AdminDashboard.jsx: uses Tabs (uncontrolled) — after modal actions the tab visually resets to first. Convert to controlled Tabs for stable UX.",
+    "PenggunaDashboard.jsx cancel() uses window.confirm — acceptable but consider a shadcn AlertDialog for design consistency with the rest of the app."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (26/26)", "frontend": "100% of Phase-2 acceptance criteria"},
+  "test_credentials": "Used /app/memory/test_credentials.md accounts — all four roles logged in successfully.",
+  "seed_data_creation": "Backend tests create ephemeral bookings (TEST CancelPax) which are cancelled during teardown, and several TEST_* users (some with role=travel bound to seeded travels). None break other flows. Frontend Playwright run created one live confirmed→cancelled booking for user@sitravel.id and one TEST_ admin-made travel user.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Phase-2 acceptance criteria pass. Regression suite in /app/backend/tests/backend_test.py now has 26 tests covering Phase 1 + Phase 2. Only cosmetic nit remains: Tabs resets after admin creates user (see design_issues).",
+  "rca of the issue": "N/A — no functional bugs found."
+}

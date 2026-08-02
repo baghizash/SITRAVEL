@@ -1,0 +1,35 @@
+{
+  "summary": "First-run testing of Si-Travel Riau MVP (backend + frontend). Backend: 19/19 pytest tests passed covering public endpoints (cities, search, seats), auth (login/register/me/cookie), RBAC scoping for admin/travel/manager/pengguna, booking flow (TR-prefixed code, duplicate-seat 400, bookings/me), and role restrictions on /travel-partners. Frontend UI: landing hero + SearchBox render, 12 cities populate selects, search flow navigates landing -> /search -> /book/:id, seat map + form + confirmation with TR booking code all work end-to-end. Login with all 4 demo credentials succeeds. All 4 role dashboards render with correct tabs/stats (Admin: 5 stats + 3 tabs, Travel: schedules/bookings tabs + Tambah Jadwal, Manager: stats + Recharts bar, Pengguna: booking list). Logout (Keluar) clears session and redirects to /login. Everything works as specified.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard (all roles)", "issues": ["Success toast 'Selamat datang!' overlaps the dashboard title text on the top-center area — toast should be repositioned (top-right or below header) to avoid covering H1"]},
+      {"screen": "Manager dashboard", "issues": ["Recharts warns 'width(-1) height(-1)' on initial mount — ResponsiveContainer parent likely needs explicit min-height; chart still renders but throws warnings"]},
+      {"screen": "Logout behavior", "issues": ["Spec says logout returns to landing (/) but current implementation redirects to /login — minor UX deviation"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Reposition success toast (Sonner) so it does not overlap dashboard heading",
+    "Give Recharts ResponsiveContainer an explicit min height (e.g. h-72) or set width/height to avoid width(-1) warning",
+    "Consider redirecting to '/' instead of '/login' after logout to match spec",
+    "CORS config: allow_origins='*' with allow_credentials=True is invalid per CORS spec; browsers will reject cross-origin credentialed requests. Works today only because frontend and API share the same host via ingress. Set CORS_ORIGINS to explicit origin list."
+  ],
+  "critical_code_review_comments": [
+    "server.py: CORS uses '*' with allow_credentials=True — spec-invalid; would break if frontend were on different origin. Recommend using REACT_APP_BACKEND_URL / explicit origin list.",
+    "server.py:332 revenue uses async list-comp iterating cursor - fine but could be a MongoDB $group aggregate for perf as bookings grow.",
+    "server.py: /api/schedules/{schedule_id}/seats is public — fine, but exposes schedule details. Consider whether that is intentional (it is, per spec).",
+    "server.py:457 uses Python's hash() which is randomized per-process (PYTHONHASHSEED) — schedule-to-travel assignment during seed is non-deterministic across restarts. Not breaking, but explains non-stable seed distribution.",
+    "server.py bookings has no capacity guard beyond seat uniqueness (fine given per-seat lock). Race condition possible under high concurrency (no unique index on schedule_id+seat_number). Recommend compound unique index.",
+    "Frontend: axios uses withCredentials — verified working; no localStorage token fallback exists, which is correct."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "100% of critical flows"},
+  "test_credentials": "Used the 4 credentials from /app/memory/test_credentials.md — all valid and login worked for each role.",
+  "seed_data_creation": "Test created 1 pengguna booking via backend test (TEST Pax) and 1 UI booking (TEST UI Pax) on today's Pekanbaru->Dumai schedules; not cleaned up. Also created ephemeral schedules deleted in test. No admin/travel seed pollution.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Phase-1 acceptance criteria pass. Backend tests are in /app/backend/tests/backend_test.py — reusable regression suite. Only cosmetic/design deviations remain (toast overlap, chart size warning, logout target). No functional bugs found."
+}

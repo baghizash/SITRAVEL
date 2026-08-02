@@ -1,0 +1,140 @@
+{
+  "theme": "light",
+  "typography": {
+    "headings": {
+      "fontFamily": "Cabinet Grotesk",
+      "weights": ["light", "bold", "black"],
+      "usage": "Use tight letter spacing (tracking-tight) for H1/H2."
+    },
+    "body": {
+      "fontFamily": "IBM Plex Sans",
+      "weights": ["regular", "medium", "semibold"],
+      "usage": "Use for all data tables, inputs, labels, and standard text."
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base",
+      "labels": "text-xs tracking-[0.2em] uppercase"
+    }
+  },
+  "colors": {
+    "archetype": "ORGANIC & EARTHY (Rooted in Melayu Riau heritage)",
+    "background": {
+      "page": "#F9F8F6",
+      "card": "#FFFFFF",
+      "glass": "bg-white/80 backdrop-blur-xl border border-white/40"
+    },
+    "primary": {
+      "name": "Hijau Lumut (Deep Moss Green)",
+      "hex": "#1E3A2F",
+      "usage": "Main branding, headers, active states, default buttons."
+    },
+    "accent": {
+      "name": "Kuning Keemasan (Golden Yellow)",
+      "hex": "#E6B325",
+      "usage": "CTAs, highlights, badges, star ratings."
+    },
+    "secondary": {
+      "name": "Merah Darah Burung (Deep Red)",
+      "hex": "#8B2520",
+      "usage": "Destructive actions, alerts, booked seat status."
+    },
+    "text": {
+      "primary": "#11181C",
+      "secondary": "#687076",
+      "muted": "#889096"
+    },
+    "borders": "#E6E8EB"
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "card": "shadow-[0_2px_8px_rgba(30,58,47,0.04)]",
+      "hover": "shadow-[0_8px_24px_rgba(30,58,47,0.08)]",
+      "glass": "shadow-[0_8px_32px_rgba(0,0,0,0.04)]"
+    },
+    "borders": {
+      "radius": "rounded-xl",
+      "input": "rounded-lg border-border"
+    },
+    "textures": "Subtle noise overlay (opacity-5) on hero sections to kill digital flatness."
+  },
+  "grids_and_layouts": {
+    "spacing_scale": "Use generous padding: p-6, p-8, p-12 for containers.",
+    "landing_page": {
+      "mode": "MODE A: The 'Tetris' Grid",
+      "details": "Asymmetrical layout for marketing sections. Wide gaps (gap-8)."
+    },
+    "dashboards": {
+      "mode": "MODE B: High-Density Grid",
+      "details": "Compact spacing (gap-4 or gap-6) for admin and travel loket dashboards."
+    }
+  },
+  "component_guidelines": {
+    "forms": "Use Shadcn components. Never native <input>. Floating labels or clean top labels.",
+    "buttons": "Pill-shaped (rounded-full) for landing page CTAs. Rounded-lg for dashboard buttons. ALWAYS set hover:text color explicitly.",
+    "navigation": "Glassmorphism header (bg-white/80 backdrop-blur-xl). Never fully transparent.",
+    "cards": "Flat background, 1px border (#E6E8EB), minimal shadow. Hover adds slight lift (-translate-y-1).",
+    "seat_map": "Custom CSS grid representing a bus layout. Use colored squares: Hijau Lumut (available), Merah Darah Burung (booked), Kuning Keemasan (selected)."
+  },
+  "motion": {
+    "hover": "transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease",
+    "entrance": "Staggered fade-up for search results using Framer Motion.",
+    "rules": "Respect prefers-reduced-motion. Don't use transition: all."
+  },
+  "accessibility": {
+    "contrast": "Ensure text over images uses bg-black/40 overlay or text-shadow.",
+    "testing": "All interactive elements MUST have data-testid attributes (e.g., data-testid='search-ticket-btn')."
+  },
+  "media": {
+    "image_urls": {
+      "hero_background": {
+        "url": "https://images.unsplash.com/photo-1553193094-d7add06beb10?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxpbmRvbmVzaWElMjB0cmF2ZWwlMjBidXMlMjByb2FkJTIwc3VtYXRyYXxlbnwwfHx8fDE3ODU2MDk4NTh8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Boats on a river representing regional tropical travel (Sumatra/Riau vibe). Use with a dark moss green gradient overlay.",
+        "category": "landing_page_hero"
+      },
+      "destination_1": {
+        "url": "https://images.unsplash.com/photo-1608724590235-f91a3dbafffc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxwZWthbmJhcnUlMjBjaXR5JTIwaW5kb25lc2lhfGVufDB8fHx8MTc4NTYwOTg1OHww&ixlib=rb-4.1.0&q=85",
+        "description": "Pekanbaru cityscape/nighttime.",
+        "category": "popular_destinations"
+      },
+      "transport_bus": {
+        "url": "https://images.unsplash.com/photo-1762813634449-a82f8f72750a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHx0cm9waWNhbCUyMGxvY2FsJTIwdHJhbnNwb3J0YXRpb24lMjB0cmF2ZWx8ZW58MHx8fHwxNzg1NjA5ODU4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "White bus parked, representing inter-city bus travel.",
+        "category": "search_results_thumbnail"
+      }
+    }
+  },
+  "3d_libraries": {
+    "recommendation": "Use minimal framer-motion for smooth transitions. No heavy 3D required for booking dashboards, keep it fast."
+  },
+  "instructions_to_main_agent": [
+    "Build the application starting with the landing page and search component.",
+    "Implement the UI in Indonesian as requested.",
+    "Use the exact font families requested (Cabinet Grotesk and IBM Plex Sans).",
+    "Adhere to the Melayu Riau color palette (Moss Green, Golden Yellow, Deep Red) across the application. Avoid generic UI purples or standard blues.",
+    "Ensure the hero header is a glassmorphism header, not completely transparent.",
+    "When building dashboards, implement role-based views (Pengguna, Admin Loket, Manager/Kepala, Admin Aplikasi).",
+    "Use Shadcn UI extensively for inputs, tables, and dialogs.",
+    "Add 'data-testid' to all buttons, inputs, and key interactive elements."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; }.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use sonner for toasts. Located in /app/frontend/src/components/ui/sonner.js",
+    "For icons, use lucide-react as the primary library."
+  ]
+}
