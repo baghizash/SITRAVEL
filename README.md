@@ -23,19 +23,18 @@ Selesai !!! MySQL + Adminer siap
 Jalankan 3 terminal secara bersamaan:
 
 Terminal 1 — Backend Laravel:
-
 bash
 
 cd /mnt/nvme0n1p2/Kerja/SI-Travel-main/backend-laravel
 php artisan serve --port=8000
-Terminal 2 — Frontend React:
 
+Terminal 2 — Frontend React:
 bash
 
 cd /mnt/nvme0n1p2/Kerja/SI-Travel-main/frontend
 npm start
-Terminal 3 — Adminer (database GUI):
 
+Terminal 3 — Adminer (database GUI):
 bash
 
 cd /mnt/nvme0n1p2/Kerja/SI-Travel-main/adminer
