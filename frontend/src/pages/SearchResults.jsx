@@ -4,23 +4,21 @@ import SiteHeader from "@/components/SiteHeader";
 import SearchBox from "@/components/SearchBox";
 import { api, formatIDR } from "@/lib/api";
 import { Bus, Clock, Users, ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function SearchResults() {
   const [params] = useSearchParams();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState([]);
 
-  const origin = params.get("origin");
+  const origin      = params.get("origin");
   const destination = params.get("destination");
-  const date = params.get("date");
+  const date        = params.get("date");
 
   useEffect(() => {
     if (!origin || !destination || !date) return;
     setLoading(true);
-    api
-      .get("/search", { params: { origin, destination, date } })
+    api.get("/search", { params: { origin, destination, date } })
       .then(({ data }) => setResults(data))
       .catch(() => setResults([]))
       .finally(() => setLoading(false));
@@ -29,88 +27,101 @@ export default function SearchResults() {
   const totalSeats = useMemo(() => results.reduce((a, r) => a + (r.seats_available || 0), 0), [results]);
 
   return (
-    <div className="min-h-screen bg-[#F5F2EC]">
+    <div className="min-h-screen" style={{ background: "#fafafa" }}>
       <SiteHeader />
 
-      <div className="border-b border-[#E6E2D8] bg-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-6">
+      {/* Search bar strip */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #e0e0e0" }}>
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-5">
           <SearchBox variant="compact" />
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
-        <div className="flex items-baseline justify-between mb-8">
-          <div>
-            <div className="text-[10px] tracking-[0.3em] uppercase text-[#8B2520]">Hasil pencarian</div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-[#14281F] tracking-tight mt-1">
-              {origin} <ArrowRight className="inline w-6 h-6 mx-1 text-[#E6B325]" /> {destination}
-            </h1>
-            <div className="text-sm text-[#4A5257] mt-1">{date} · {totalSeats} kursi tersedia</div>
+        {/* Heading */}
+        <div className="mb-8">
+          <div className="text-[10px] tracking-[0.3em] uppercase font-semibold" style={{ color: "#8b0000" }}>Hasil pencarian</div>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-1" style={{ color: "#141414" }}>
+            {origin} <ArrowRight className="inline w-6 h-6 mx-1" style={{ color: "#8b0000" }} /> {destination}
+          </h1>
+          <div className="text-sm mt-1" style={{ color: "#4b4b4b" }}>
+            {date} · <b>{totalSeats}</b> kursi tersedia
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-[#4A5257]">
-            <Loader2 className="w-4 h-4 animate-spin" /> Memuat jadwal…
+          <div className="flex items-center gap-2" style={{ color: "#4b4b4b" }}>
+            <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#8b0000" }} /> Memuat jadwal…
           </div>
         ) : results.length === 0 ? (
-          <div className="bg-white border border-[#E6E2D8] rounded-2xl p-10 text-center" data-testid="no-results">
-            <Bus className="w-10 h-10 mx-auto text-[#8B2520]" />
-            <div className="mt-4 font-display text-2xl font-bold text-[#14281F]">Tidak ada jadwal ditemukan</div>
-            <p className="text-sm text-[#4A5257] mt-2">Coba tanggal lain atau cek rute serupa.</p>
+          <div className="rounded-2xl p-10 text-center" style={{ background: "#fff", border: "1px solid #e0e0e0" }}
+            data-testid="no-results">
+            <Bus className="w-10 h-10 mx-auto" style={{ color: "#8b0000" }} />
+            <div className="font-display text-2xl font-bold mt-4" style={{ color: "#141414" }}>Tidak ada jadwal ditemukan</div>
+            <p className="text-sm mt-2" style={{ color: "#4b4b4b" }}>Coba tanggal lain atau cek rute serupa.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {results.map((r) => (
-              <div
-                key={r.id}
-                className="bg-white border border-[#E6E2D8] rounded-2xl p-5 sm:p-6 card-lift flex flex-col md:flex-row md:items-center gap-4 md:gap-6"
-                data-testid={`result-${r.id}`}
-              >
+              <div key={r.id} className="card-lift rounded-2xl p-5 sm:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-6"
+                style={{ background: "#fff", border: "1px solid #e0e0e0" }}
+                data-testid={`result-${r.id}`}>
+
+                {/* Travel info */}
                 <div className="flex items-center gap-3 min-w-[220px]">
-                  <div className="w-12 h-12 rounded-xl bg-[#1E3A2F] flex items-center justify-center">
-                    <Bus className="w-6 h-6 text-[#F2D06B]" />
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#141414" }}>
+                    <Bus className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <div className="font-display text-lg font-bold text-[#14281F] leading-tight">{r.travel?.name || "-"}</div>
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">{r.vehicle}</div>
+                    <div className="font-display text-lg font-bold leading-tight" style={{ color: "#141414" }}>
+                      {r.travel?.name || "-"}
+                    </div>
+                    <div className="text-[10px] tracking-[0.2em] uppercase mt-0.5" style={{ color: "#4b4b4b" }}>
+                      {r.vehicle}
+                    </div>
                   </div>
                 </div>
 
+                {/* Details */}
                 <div className="flex-1 grid grid-cols-3 gap-4">
                   <div>
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">Berangkat</div>
-                    <div className="mt-1 font-display text-2xl font-bold text-[#14281F] flex items-center gap-1.5">
-                      <Clock className="w-5 h-5 text-[#1E3A2F]" /> {r.depart_time}
+                    <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>Berangkat</div>
+                    <div className="font-display text-2xl font-bold mt-1 flex items-center gap-1.5" style={{ color: "#141414" }}>
+                      <Clock className="w-5 h-5" style={{ color: "#8b0000" }} /> {r.depart_time}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">Rute</div>
-                    <div className="mt-1 text-sm text-[#11181C]">
+                    <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>Rute</div>
+                    <div className="mt-1 text-sm font-medium" style={{ color: "#141414" }}>
                       <b>{r.origin}</b> → <b>{r.destination}</b>
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">Kursi</div>
-                    <div className="mt-1 text-sm text-[#11181C] flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-[#1E3A2F]" /> {r.seats_available} / {r.total_seats}
+                    <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>Kursi</div>
+                    <div className="mt-1 text-sm flex items-center gap-1.5" style={{ color: "#141414" }}>
+                      <Users className="w-4 h-4" style={{ color: "#8b0000" }} />
+                      {r.seats_available} / {r.total_seats}
                     </div>
                   </div>
                 </div>
 
+                {/* Price + CTA */}
                 <div className="flex items-center gap-4 md:gap-6">
                   <div className="text-right">
-                    <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">Harga</div>
-                    <div className="font-display text-2xl font-bold text-[#8B2520]">{formatIDR(r.price)}</div>
+                    <div className="text-[10px] tracking-[0.2em] uppercase" style={{ color: "#4b4b4b" }}>Harga</div>
+                    <div className="font-display text-2xl font-bold" style={{ color: "#8b0000" }}>
+                      {formatIDR(r.price)}
+                    </div>
                   </div>
-                  <Button
+                  <button
                     onClick={() => navigate(`/book/${r.id}`)}
                     disabled={r.seats_available === 0}
-                    className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B] px-5"
-                    data-testid={`book-btn-${r.id}`}
-                  >
+                    className="px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-colors"
+                    style={{ background: r.seats_available === 0 ? "#4b4b4b" : "#8b0000", cursor: r.seats_available === 0 ? "not-allowed" : "pointer" }}
+                    data-testid={`book-btn-${r.id}`}>
                     {r.seats_available === 0 ? "Habis" : "Pilih Kursi"}
-                  </Button>
+                  </button>
                 </div>
               </div>
             ))}

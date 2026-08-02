@@ -69,7 +69,7 @@ export default function AdminDashboard() {
       ]}
     >
       {loading ? (
-        <div className="flex items-center gap-2 text-[#4A5257]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
+        <div className="flex items-center gap-2 text-[#4b4b4b]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
           </div>
 
           <Tabs value={tab} onValueChange={setTab} className="mt-10">
-            <TabsList className="bg-white border border-[#E6E2D8]">
+            <TabsList className="bg-white border border-[#e0e0e0]">
               <TabsTrigger value="travels" data-testid="admin-tab-travels">Mitra Travel</TabsTrigger>
               <TabsTrigger value="users" data-testid="admin-tab-users">Pengguna</TabsTrigger>
               <TabsTrigger value="bookings" data-testid="admin-tab-bookings">Booking</TabsTrigger>
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
               <div className="flex justify-end mb-4">
                 <Dialog open={travelOpen} onOpenChange={setTravelOpen}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="new-travel-btn">
+                    <Button className="rounded-full bg-[#8b0000] text-white hover:bg-[#6b0000] hover:text-white" data-testid="new-travel-btn">
                       <Plus className="w-4 h-4 mr-1" /> Tambah Mitra
                     </Button>
                   </DialogTrigger>
@@ -104,21 +104,21 @@ export default function AdminDashboard() {
                       <F label="Kontak" value={tForm.contact} onChange={(e)=>setTForm({...tForm, contact:e.target.value})} testid="tf-contact" />
                     </div>
                     <DialogFooter>
-                      <Button onClick={submitTravel} className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="tf-submit">Simpan</Button>
+                      <Button onClick={submitTravel} className="rounded-full bg-[#8b0000] text-white hover:bg-[#6b0000] hover:text-white" data-testid="tf-submit">Simpan</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </div>
-              <div className="rounded-2xl bg-white border border-[#E6E2D8] overflow-hidden">
-                <div className="grid grid-cols-[80px_1fr_1fr_180px] px-5 py-3 border-b border-[#E6E2D8] text-[10px] tracking-[0.25em] uppercase text-[#7C8489] bg-[#F5F2EC]">
+              <div className="rounded-2xl bg-white border border-[#e0e0e0] overflow-hidden">
+                <div className="grid grid-cols-[80px_1fr_1fr_180px] px-5 py-3 border-b border-[#e0e0e0] text-[10px] tracking-[0.25em] uppercase text-[#4b4b4b] bg-[#f2f2f2]">
                   <div>Kode</div><div>Nama</div><div>Deskripsi</div><div>Kontak</div>
                 </div>
                 {travels.map((t) => (
-                  <div key={t.id} className="grid grid-cols-[80px_1fr_1fr_180px] px-5 py-3 border-b border-[#E6E2D8] text-sm">
-                    <div className="font-mono font-semibold text-[#1E3A2F]">{t.code}</div>
+                  <div key={t.id} className="grid grid-cols-[80px_1fr_1fr_180px] px-5 py-3 border-b border-[#e0e0e0] text-sm">
+                    <div className="font-mono font-semibold text-[#8b0000]">{t.code}</div>
                     <div className="font-medium">{t.name}</div>
-                    <div className="text-[#4A5257]">{t.description}</div>
-                    <div className="text-[#4A5257]">{t.contact}</div>
+                    <div className="text-[#4b4b4b]">{t.description}</div>
+                    <div className="text-[#4b4b4b]">{t.contact}</div>
                   </div>
                 ))}
               </div>
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
               <div className="flex justify-end mb-4">
                 <Dialog open={userOpen} onOpenChange={setUserOpen}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="new-user-btn">
+                    <Button className="rounded-full bg-[#8b0000] text-white hover:bg-[#6b0000] hover:text-white" data-testid="new-user-btn">
                       <Plus className="w-4 h-4 mr-1" /> Buat Akun
                     </Button>
                   </DialogTrigger>

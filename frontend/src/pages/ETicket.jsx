@@ -1,15 +1,15 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import SiteHeader from "@/components/SiteHeader";
 import { api, formatIDR } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Bus, Printer, ArrowLeft, Loader2, Ticket, MapPin, Clock, User, Phone } from "lucide-react";
+import { Loader2, Ticket, Bus, MapPin, Clock, User, Phone, Download, RotateCw, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ETicket() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const printRef = useRef(null);
 
   useEffect(() => {
     api.get(`/bookings/${bookingId}`)
@@ -18,109 +18,179 @@ export default function ETicket() {
       .finally(() => setLoading(false));
   }, [bookingId]);
 
-  const print = () => window.print();
+  const downloadPDF = () => {
+    const url = `${process.env.REACT_APP_BACKEND_URL}/api/bookings/${bookingId}/ticket.pdf`;
+    fetch(url, { credentials: "include" })
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `etiket-${booking.booking_code}.pdf`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      })
+      .catch(() => toast.error("Gagal download PDF"));
+  };
 
-  if (loading) {
-    return <div className="min-h-screen bg-[#F5F2EC] p-10 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>;
-  }
-  if (!booking) {
-    return (
-      <div className="min-h-screen bg-[#F5F2EC] p-10">
-        <div className="max-w-md mx-auto rounded-2xl bg-white border border-[#E6E2D8] p-8 text-center">
-          <div className="font-display text-2xl font-bold text-[#14281F]">Tiket tidak ditemukan</div>
-          <Link to="/dashboard" className="text-[#1E3A2F] underline mt-4 inline-block">Kembali ke Dashboard</Link>
-        </div>
+  const cancel = async () => {
+    if (!confirm("Batalkan booking ini?")) return;
+    try {
+      await api.post(`/bookings/${bookingId}/cancel`);
+      toast.success("Booking dibatalkan");
+      const { data } = await api.get(`/bookings/${bookingId}`);
+      setBooking(data);
+    } catch (e) { toast.error(e.response?.data?.detail || "Gagal membatalkan"); }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen" style={{ background: "#fafafa" }}>
+      <SiteHeader />
+      <div className="p-10 flex items-center gap-2" style={{ color: "#4b4b4b" }}>
+        <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#8b0000" }} /> Memuat tiket…
       </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-[#F5F2EC] py-10 print:bg-white print:py-0">
-      <div className="max-w-2xl mx-auto px-5 print:px-0">
-        <div className="flex items-center justify-between mb-6 print:hidden">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-full text-[#1E3A2F] hover:bg-[#1E3A2F]/10 hover:text-[#1E3A2F]" data-testid="ticket-back">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
-          </Button>
-          <Button onClick={print} className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="ticket-print-btn">
-            <Printer className="w-4 h-4 mr-2" /> Cetak Tiket
-          </Button>
-        </div>
-
-        <div ref={printRef} className="rounded-3xl overflow-hidden bg-white border border-[#E6E2D8] shadow-[0_18px_60px_-24px_rgba(20,40,31,0.35)] print:shadow-none print:border-0" data-testid="e-ticket">
-          {/* Header */}
-          <div className="bg-[#14281F] text-white p-6 grain relative">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-[#E6B325] flex items-center justify-center">
-                  <Bus className="w-5 h-5 text-[#14281F]" />
-                </div>
-                <div className="leading-tight">
-                  <div className="font-display text-lg font-black">Si-Travel</div>
-                  <div className="text-[9px] tracking-[0.3em] uppercase text-[#F2D06B]">Riau</div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] tracking-[0.3em] uppercase text-[#F2D06B]">E-Tiket</div>
-                <div className="font-mono text-lg font-bold">{booking.booking_code}</div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <div className="text-[10px] tracking-[0.3em] uppercase text-white/60">Rute</div>
-              <div className="font-display text-3xl sm:text-4xl font-black tracking-tighter mt-1">
-                {booking.origin} <span className="text-[#F2D06B]">→</span> {booking.destination}
-              </div>
-              <div className="text-sm text-white/70 mt-1">{booking.travel?.name || "-"}</div>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="p-6 grid grid-cols-2 gap-5">
-            <Row icon={Clock} label="Berangkat" value={`${booking.depart_date}\n${booking.depart_time}`} />
-            <Row icon={Ticket} label="Kursi" value={`#${booking.seat_number}`} />
-            <Row icon={User} label="Penumpang" value={booking.passenger_name} />
-            <Row icon={Phone} label="No. HP" value={booking.passenger_phone} />
-            <Row icon={MapPin} label="Titik Naik" value={`${booking.origin} (Loket ${booking.travel?.code || ""})`} />
-            <Row icon={MapPin} label="Titik Turun" value={booking.destination} />
-          </div>
-
-          <div className="border-t border-dashed border-[#E6E2D8] mx-6" />
-
-          <div className="p-6 flex items-center justify-between">
-            <div>
-              <div className="text-[10px] tracking-[0.3em] uppercase text-[#7C8489]">Total Bayar</div>
-              <div className="font-display text-3xl font-black text-[#8B2520]">{formatIDR(booking.price)}</div>
-            </div>
-            <div className={`text-xs px-3 py-1.5 rounded-full font-medium ${booking.status === "confirmed" ? "bg-[#1E3A2F] text-[#F2D06B]" : "bg-[#8B2520] text-white"}`}>
-              {booking.status === "confirmed" ? "TERKONFIRMASI" : booking.status.toUpperCase()}
-            </div>
-          </div>
-
-          {/* Footer strip */}
-          <div className="bg-[#F5F2EC] border-t border-[#E6E2D8] p-4 text-[10px] tracking-[0.25em] uppercase text-[#7C8489] text-center">
-            Tunjukkan e-tiket ini kepada Admin Loket · Berlaku hanya untuk tanggal & jam yang tertera
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        @media print {
-          @page { size: A5; margin: 12mm; }
-          body { background: white !important; }
-        }
-      `}</style>
     </div>
   );
-}
 
-function Row({ icon: Icon, label, value }) {
+  if (!booking) return (
+    <div className="min-h-screen" style={{ background: "#fafafa" }}>
+      <SiteHeader />
+      <div className="p-10" style={{ color: "#8b0000" }}>Booking tidak ditemukan.</div>
+    </div>
+  );
+
+  const isCancelled = booking.status === "cancelled";
+
   return (
-    <div className="flex gap-3">
-      <div className="w-8 h-8 rounded-lg bg-[#F5F2EC] flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-[#1E3A2F]" />
-      </div>
-      <div>
-        <div className="text-[10px] tracking-[0.25em] uppercase text-[#7C8489]">{label}</div>
-        <div className="text-sm font-medium text-[#11181C] whitespace-pre-line mt-0.5">{value}</div>
+    <div className="min-h-screen" style={{ background: "#fafafa" }}>
+      <SiteHeader />
+      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-10">
+
+        {/* Ticket card */}
+        <div className="rounded-3xl overflow-hidden shadow-lg" style={{ background: "#fff", border: `2px solid ${isCancelled ? "#4b4b4b" : "#8b0000"}` }}
+          data-testid="eticket-card">
+
+          {/* Header */}
+          <div className="px-7 py-5 flex items-center justify-between"
+            style={{ background: isCancelled ? "#4b4b4b" : "#141414" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#8b0000" }}>
+                <Ticket className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="font-display text-base font-black text-white">Si-Travel Riau</div>
+                <div className="text-[9px] tracking-[0.3em] uppercase" style={{ color: "rgba(255,255,255,0.5)" }}>E-Tiket Perjalanan</div>
+              </div>
+            </div>
+            <span className="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full"
+              style={{ background: isCancelled ? "rgba(255,255,255,0.1)" : "rgba(139,0,0,0.3)", color: isCancelled ? "#fff" : "#ff9999" }}>
+              {booking.status}
+            </span>
+          </div>
+
+          {/* Route bar */}
+          <div className="px-7 py-5 flex items-center justify-between"
+            style={{ background: "#f2f2f2", borderBottom: "2px dashed #e0e0e0" }}>
+            <div>
+              <div className="text-[9px] tracking-[0.3em] uppercase" style={{ color: "#4b4b4b" }}>Asal</div>
+              <div className="font-display text-2xl font-bold" style={{ color: "#141414" }}>{booking.origin}</div>
+            </div>
+            <MapPin className="w-6 h-6" style={{ color: "#8b0000" }} />
+            <div className="text-right">
+              <div className="text-[9px] tracking-[0.3em] uppercase" style={{ color: "#4b4b4b" }}>Tujuan</div>
+              <div className="font-display text-2xl font-bold" style={{ color: "#141414" }}>{booking.destination}</div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="px-7 py-6 grid grid-cols-2 gap-5">
+            {[
+              { icon: Clock,  label: "Berangkat",   value: `${booking.depart_date} · ${booking.depart_time}` },
+              { icon: Bus,    label: "Travel",       value: booking.travel?.name || "-" },
+              { icon: User,   label: "Penumpang",    value: booking.passenger_name },
+              { icon: Phone,  label: "No. HP",       value: booking.passenger_phone },
+            ].map(({ icon: Icon, label, value }) => (
+              <div key={label}>
+                <div className="flex items-center gap-1.5 text-[9px] tracking-[0.25em] uppercase mb-1" style={{ color: "#4b4b4b" }}>
+                  <Icon className="w-3 h-3" style={{ color: "#8b0000" }} /> {label}
+                </div>
+                <div className="text-sm font-semibold" style={{ color: "#141414" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Code bar */}
+          <div className="px-7 py-4 flex items-center justify-between"
+            style={{ background: "#141414", borderTop: "2px dashed #e0e0e0" }}>
+            <div>
+              <div className="text-[9px] tracking-[0.25em] uppercase text-white/50">Kode Booking</div>
+              <div className="font-mono text-xl font-bold tracking-widest" style={{ color: "#fff" }}>
+                {booking.booking_code}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[9px] tracking-[0.25em] uppercase text-white/50">Kursi</div>
+              <div className="font-display text-3xl font-black" style={{ color: "#8b0000" }}>#{booking.seat_number}</div>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="px-7 py-4 flex items-center justify-between" style={{ borderTop: "1px solid #e0e0e0" }}>
+            <div className="text-[9px] tracking-[0.25em] uppercase" style={{ color: "#4b4b4b" }}>Total Bayar</div>
+            <div className="font-display text-2xl font-bold" style={{ color: "#8b0000" }}>{formatIDR(booking.price)}</div>
+          </div>
+        </div>
+
+        {/* Reschedule history */}
+        {booking.reschedule_history?.length > 0 && (
+          <div className="mt-6 rounded-2xl p-5" style={{ background: "#fff", border: "1px solid #e0e0e0" }}>
+            <div className="text-[10px] tracking-[0.3em] uppercase font-semibold mb-3" style={{ color: "#8b0000" }}>
+              Riwayat Reschedule
+            </div>
+            <div className="space-y-2">
+              {booking.reschedule_history.map((h, i) => (
+                <div key={i} className="flex items-center justify-between text-sm py-2"
+                  style={{ borderBottom: "1px solid #f2f2f2" }}>
+                  <span style={{ color: "#4b4b4b" }}>{h.depart_date} · {h.depart_time}</span>
+                  <span style={{ color: "#6e6e6e" }}>Kursi #{h.seat_number}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button onClick={downloadPDF}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-colors"
+            style={{ background: "#8b0000" }}
+            data-testid="download-pdf-btn">
+            <Download className="w-4 h-4" /> Download PDF
+          </button>
+
+          {!isCancelled && (
+            <>
+              <button onClick={() => navigate(`/reschedule/${bookingId}`)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+                style={{ border: "1px solid #141414", color: "#141414" }}
+                data-testid="reschedule-btn">
+                <RotateCw className="w-4 h-4" /> Reschedule
+              </button>
+              <button onClick={cancel}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
+                style={{ border: "1px solid #e0e0e0", color: "#8b0000" }}
+                data-testid="cancel-btn">
+                <XCircle className="w-4 h-4" /> Batalkan
+              </button>
+            </>
+          )}
+
+          <button onClick={() => navigate("/dashboard")}
+            className="px-5 py-2.5 rounded-full text-sm transition-colors"
+            style={{ color: "#4b4b4b" }}
+            data-testid="back-dashboard-btn">
+            ← Dashboard
+          </button>
+        </div>
       </div>
     </div>
   );

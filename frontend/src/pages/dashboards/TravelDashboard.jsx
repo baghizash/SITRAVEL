@@ -68,7 +68,7 @@ export default function TravelDashboard() {
       ]}
     >
       {loading ? (
-        <div className="flex items-center gap-2 text-[#4A5257]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
+        <div className="flex items-center gap-2 text-[#4b4b4b]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -79,7 +79,7 @@ export default function TravelDashboard() {
           </div>
 
           <Tabs defaultValue="schedules" className="mt-10">
-            <TabsList className="bg-white border border-[#E6E2D8]">
+            <TabsList className="bg-white border border-[#e0e0e0]">
               <TabsTrigger value="schedules" data-testid="tab-schedules">Jadwal</TabsTrigger>
               <TabsTrigger value="bookings" data-testid="tab-bookings">Pemesanan</TabsTrigger>
             </TabsList>
@@ -88,7 +88,7 @@ export default function TravelDashboard() {
               <div className="flex justify-end mb-4">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
-                    <Button className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="new-schedule-btn">
+                    <Button className="rounded-full bg-[#8b0000] text-white hover:bg-[#6b0000] hover:text-white" data-testid="new-schedule-btn">
                       <Plus className="w-4 h-4 mr-1" /> Tambah Jadwal
                     </Button>
                   </DialogTrigger>
@@ -106,28 +106,28 @@ export default function TravelDashboard() {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button onClick={submit} className="rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F] hover:text-[#F2D06B]" data-testid="sf-submit">Simpan</Button>
+                      <Button onClick={submit} className="rounded-full bg-[#8b0000] text-white hover:bg-[#6b0000] hover:text-white" data-testid="sf-submit">Simpan</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </div>
 
-              <div className="rounded-2xl bg-white border border-[#E6E2D8] overflow-hidden">
-                <div className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#E6E2D8] text-[10px] tracking-[0.25em] uppercase text-[#7C8489] bg-[#F5F2EC]">
+              <div className="rounded-2xl bg-white border border-[#e0e0e0] overflow-hidden">
+                <div className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#e0e0e0] text-[10px] tracking-[0.25em] uppercase text-[#4b4b4b] bg-[#f2f2f2]">
                   <div>Rute</div><div>Kendaraan</div><div>Tanggal</div><div>Jam</div><div>Harga</div><div>Terisi</div><div></div>
                 </div>
                 {schedules.length === 0 ? (
-                  <div className="p-10 text-center text-[#4A5257]">Belum ada jadwal.</div>
+                  <div className="p-10 text-center text-[#4b4b4b]">Belum ada jadwal.</div>
                 ) : (
                   schedules.map((s) => (
-                    <div key={s.id} className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#E6E2D8] items-center text-sm" data-testid={`sched-row-${s.id}`}>
+                    <div key={s.id} className="grid grid-cols-[1fr_1fr_120px_100px_120px_120px_60px] px-5 py-3 border-b border-[#e0e0e0] items-center text-sm" data-testid={`sched-row-${s.id}`}>
                       <div className="font-medium">{s.origin} → {s.destination}</div>
-                      <div className="text-[#4A5257]">{s.vehicle}</div>
-                      <div className="text-[#4A5257]">{s.depart_date}</div>
+                      <div className="text-[#4b4b4b]">{s.vehicle}</div>
+                      <div className="text-[#4b4b4b]">{s.depart_date}</div>
                       <div>{s.depart_time}</div>
-                      <div className="font-semibold text-[#8B2520]">{formatIDR(s.price)}</div>
+                      <div className="font-semibold text-[#8b0000]">{formatIDR(s.price)}</div>
                       <div>{s.booked}/{s.total_seats}</div>
-                      <button onClick={() => del(s.id)} className="text-[#8B2520] hover:text-[#14281F]" data-testid={`del-${s.id}`}><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => del(s.id)} className="text-[#8b0000] hover:text-[#141414]" data-testid={`del-${s.id}`}><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))
                 )}
@@ -135,24 +135,24 @@ export default function TravelDashboard() {
             </TabsContent>
 
             <TabsContent value="bookings" className="mt-6">
-              <div className="rounded-2xl bg-white border border-[#E6E2D8] overflow-hidden">
-                <div className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#E6E2D8] text-[10px] tracking-[0.25em] uppercase text-[#7C8489] bg-[#F5F2EC]">
+              <div className="rounded-2xl bg-white border border-[#e0e0e0] overflow-hidden">
+                <div className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#e0e0e0] text-[10px] tracking-[0.25em] uppercase text-[#4b4b4b] bg-[#f2f2f2]">
                   <div>Kode</div><div>Penumpang</div><div>Rute</div><div>Berangkat</div><div>Kursi</div><div>Total</div>
                 </div>
                 {bookings.length === 0 ? (
-                  <div className="p-10 text-center text-[#4A5257]">Belum ada pemesanan.</div>
+                  <div className="p-10 text-center text-[#4b4b4b]">Belum ada pemesanan.</div>
                 ) : (
                   bookings.map((b) => (
-                    <div key={b.id} className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#E6E2D8] items-center text-sm">
+                    <div key={b.id} className="grid grid-cols-[110px_1fr_1fr_1fr_100px_120px] px-5 py-3 border-b border-[#e0e0e0] items-center text-sm">
                       <div className="font-mono text-xs">{b.booking_code}</div>
                       <div>
                         <div className="font-medium">{b.passenger_name}</div>
-                        <div className="text-xs text-[#7C8489]">{b.passenger_phone}</div>
+                        <div className="text-xs text-[#4b4b4b]">{b.passenger_phone}</div>
                       </div>
                       <div>{b.origin} → {b.destination}</div>
                       <div>{b.depart_date} · {b.depart_time}</div>
                       <div>#{b.seat_number}</div>
-                      <div className="font-semibold text-[#8B2520]">{formatIDR(b.price)}</div>
+                      <div className="font-semibold text-[#8b0000]">{formatIDR(b.price)}</div>
                     </div>
                   ))
                 )}
@@ -168,8 +168,8 @@ export default function TravelDashboard() {
 function FormField({ label, testid, ...props }) {
   return (
     <div>
-      <Label className="text-xs tracking-[0.2em] uppercase text-[#7C8489]">{label}</Label>
-      <Input className="mt-1 rounded-lg border-[#E6E2D8]" data-testid={testid} {...props} />
+      <Label className="text-xs tracking-[0.2em] uppercase text-[#4b4b4b]">{label}</Label>
+      <Input className="mt-1 rounded-lg border-[#e0e0e0]" data-testid={testid} {...props} />
     </div>
   );
 }
@@ -177,9 +177,9 @@ function FormField({ label, testid, ...props }) {
 function CitySelect({ label, value, onChange, cities, testid }) {
   return (
     <div>
-      <Label className="text-xs tracking-[0.2em] uppercase text-[#7C8489]">{label}</Label>
+      <Label className="text-xs tracking-[0.2em] uppercase text-[#4b4b4b]">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="mt-1 rounded-lg border-[#E6E2D8]" data-testid={testid}>
+        <SelectTrigger className="mt-1 rounded-lg border-[#e0e0e0]" data-testid={testid}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
