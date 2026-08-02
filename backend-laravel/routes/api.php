@@ -7,6 +7,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SeatController;
 use App\Http\Controllers\StatsController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TravelPartnerController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,10 @@ Route::prefix('auth')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('logout',   [AuthController::class, 'logout'])->middleware('auth:api');
     Route::get('me',        [AuthController::class, 'me'])->middleware('auth:api');
+
+    // Profil & password
+    Route::put('profile',         [AuthController::class, 'updateProfile'])->middleware('auth:api');
+    Route::put('change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
 });
 
 // ---------- Public ----------
@@ -54,6 +59,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('bookings/{bookingId}',               [BookingController::class, 'show']);
     Route::post('bookings/{bookingId}/reschedule',   [BookingController::class, 'reschedule']);
     Route::post('bookings/{bookingId}/cancel',       [BookingController::class, 'cancel']);
+    Route::get('bookings/{bookingId}/ticket.pdf',    [TicketController::class,  'download']);
 
     // Travel Partners
     Route::get('travel-partners',  [TravelPartnerController::class, 'index'])

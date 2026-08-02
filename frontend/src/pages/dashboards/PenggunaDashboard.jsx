@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
 import DashboardShell, { StatCard } from "@/components/DashboardShell";
 import { api, formatIDR } from "@/lib/api";
-import { Ticket, MapPin, Loader2, Printer, XCircle, RotateCw } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Ticket, MapPin, Loader2, Printer, XCircle, RotateCw,
+  User, KeyRound, Download, CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function PenggunaDashboard() {
+  const [tab, setTab] = useState("bookings");
   const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user, setUser } = useAuth();
 
   const load = () => {
     setLoading(true);
@@ -31,18 +39,36 @@ export default function PenggunaDashboard() {
     }
   };
 
+  const downloadPDF = (id, code) => {
+    const url = `${process.env.REACT_APP_BACKEND_URL}/api/bookings/${id}/ticket.pdf`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `etiket-${code}.pdf`;
+    // Sertakan credentials (cookie)
+    fetch(url, { credentials: "include" })
+      .then(r => r.blob())
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        a.href = blobUrl;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch(() => toast.error("Gagal download PDF"));
+  };
+
   return (
     <DashboardShell
       title="Dashboard Pengguna"
       subtitle="Perjalanan Anda"
       nav={[
-        { key: "bookings", label: "Booking Saya", icon: Ticket, active: true },
-        { key: "search", label: "Cari Tiket Baru", icon: MapPin, onClick: () => navigate("/") },
+        { key: "bookings", label: "Booking Saya",  icon: Ticket,   active: tab === "bookings",  onClick: () => setTab("bookings")  },
+        { key: "profile",  label: "Profil & Akun", icon: User,     active: tab === "profile",   onClick: () => setTab("profile")   },
+        { key: "search",   label: "Cari Tiket Baru",icon: MapPin,  onClick: () => navigate("/") },
       ]}
     >
       {loading ? (
         <div className="flex items-center gap-2 text-[#4A5257]"><Loader2 className="w-4 h-4 animate-spin" /> Memuat…</div>
-      ) : (
+      ) : tab === "bookings" ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatCard label="Total Booking" value={stats?.my_bookings ?? 0} />
@@ -78,7 +104,7 @@ export default function PenggunaDashboard() {
                       <Info label="Kursi" value={`#${b.seat_number}`} />
                       <Info label="Total" value={formatIDR(b.price)} />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium tracking-wider uppercase ${b.status === "confirmed" ? "bg-[#1E3A2F] text-[#F2D06B]" : "bg-[#8B2520] text-white"}`}>
                         {b.status}
                       </span>
@@ -89,6 +115,9 @@ export default function PenggunaDashboard() {
                               <Printer className="w-3.5 h-3.5 mr-1" /> E-Tiket
                             </Button>
                           </Link>
+                          <Button size="sm" variant="outline" onClick={() => downloadPDF(b.id, b.booking_code)} className="rounded-full border-[#4A5257] text-[#4A5257] hover:bg-[#4A5257] hover:text-white" data-testid={`pdf-${b.id}`}>
+                            <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                          </Button>
                           <Link to={`/reschedule/${b.id}`} data-testid={`reschedule-${b.id}`}>
                             <Button size="sm" variant="outline" className="rounded-full border-[#E6B325] text-[#8B2520] hover:bg-[#E6B325] hover:text-[#14281F]">
                               <RotateCw className="w-3.5 h-3.5 mr-1" /> Reschedule
@@ -106,8 +135,96 @@ export default function PenggunaDashboard() {
             )}
           </div>
         </>
+      ) : (
+        <ProfileTab user={user} onUpdate={(u) => setUser && setUser(u)} />
       )}
     </DashboardShell>
+  );
+}
+
+// ── Tab Profil ────────────────────────────────────────────────────────────────
+function ProfileTab({ user, onUpdate }) {
+  const [name,  setName]  = useState(user?.name  ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const [curPw,  setCurPw]  = useState("");
+  const [newPw,  setNewPw]  = useState("");
+  const [saving2, setSaving2] = useState(false);
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const { data } = await api.put("/auth/profile", { name, phone });
+      toast.success("Profil berhasil disimpan");
+      onUpdate?.(data.user);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal menyimpan");
+    } finally { setSaving(false); }
+  };
+
+  const changePassword = async () => {
+    if (!curPw || !newPw) return toast.error("Isi semua field password");
+    if (newPw.length < 6) return toast.error("Password baru minimal 6 karakter");
+    setSaving2(true);
+    try {
+      await api.put("/auth/change-password", { current_password: curPw, new_password: newPw });
+      toast.success("Password berhasil diubah");
+      setCurPw(""); setNewPw("");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal mengubah password");
+    } finally { setSaving2(false); }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-3xl">
+      {/* Edit Profil */}
+      <div className="rounded-2xl bg-white border border-[#E6E2D8] p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <User className="w-5 h-5 text-[#1E3A2F]" />
+          <h3 className="font-display text-lg font-bold text-[#14281F]">Edit Profil</h3>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-xs tracking-[0.15em] uppercase text-[#7C8489]">Email</Label>
+            <Input value={user?.email ?? ""} disabled className="mt-1 rounded-lg bg-[#F5F2EC] border-[#E6E2D8] text-[#7C8489]" />
+          </div>
+          <div>
+            <Label className="text-xs tracking-[0.15em] uppercase text-[#7C8489]">Nama Lengkap</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="mt-1 rounded-lg border-[#E6E2D8]" />
+          </div>
+          <div>
+            <Label className="text-xs tracking-[0.15em] uppercase text-[#7C8489]">Nomor HP</Label>
+            <Input value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 rounded-lg border-[#E6E2D8]" placeholder="08xxxxxxxxxx" />
+          </div>
+          <Button onClick={saveProfile} disabled={saving} className="w-full rounded-full bg-[#1E3A2F] text-[#F2D06B] hover:bg-[#14281F]">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Simpan Profil</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* Ganti Password */}
+      <div className="rounded-2xl bg-white border border-[#E6E2D8] p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <KeyRound className="w-5 h-5 text-[#1E3A2F]" />
+          <h3 className="font-display text-lg font-bold text-[#14281F]">Ganti Password</h3>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-xs tracking-[0.15em] uppercase text-[#7C8489]">Password Saat Ini</Label>
+            <Input type="password" value={curPw} onChange={e => setCurPw(e.target.value)} className="mt-1 rounded-lg border-[#E6E2D8]" />
+          </div>
+          <div>
+            <Label className="text-xs tracking-[0.15em] uppercase text-[#7C8489]">Password Baru</Label>
+            <Input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} className="mt-1 rounded-lg border-[#E6E2D8]" />
+            <p className="text-[10px] text-[#7C8489] mt-1">Minimal 6 karakter</p>
+          </div>
+          <Button onClick={changePassword} disabled={saving2} className="w-full rounded-full bg-[#E6B325] text-[#14281F] hover:bg-[#F2D06B]">
+            {saving2 ? <Loader2 className="w-4 h-4 animate-spin" /> : <><KeyRound className="w-4 h-4 mr-2" /> Ubah Password</>}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

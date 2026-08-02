@@ -2,12 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BookingCancelled;
+use App\Mail\BookingConfirmed;
+use App\Mail\BookingRescheduled;
 use App\Models\Booking;
 use App\Models\Schedule;
 use App\Models\SeatLock;
 use App\Models\Travel;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
@@ -26,6 +32,12 @@ class BookingController extends Controller
         $schedule = Schedule::where('uid', $data['schedule_id'])->first();
         if (! $schedule) {
             return response()->json(['detail' => 'Jadwal tidak ditemukan'], 404);
+        }
+
+        // Validasi: tidak boleh booking jadwal yang sudah lewat
+        $departDate = Carbon::parse($schedule->depart_date)->startOfDay();
+        if ($departDate->lt(Carbon::today())) {
+            return response()->json(['detail' => 'Tidak dapat memesan jadwal yang sudah lewat'], 400);
         }
 
         if ($data['seat_number'] < 1 || $data['seat_number'] > $schedule->total_seats) {
@@ -62,6 +74,14 @@ class BookingController extends Controller
         SeatLock::where('schedule_uid', $data['schedule_id'])
             ->where('seat_number', $data['seat_number'])
             ->delete();
+
+        // Kirim email konfirmasi (silent — tidak gagalkan request jika mail error)
+        try {
+            $owner = User::where('uid', $user->uid)->first();
+            if ($owner?->email) {
+                Mail::to($owner->email)->send(new BookingConfirmed($booking, $travel));
+            }
+        } catch (\Exception) {}
 
         return response()->json($booking->toApiArray($travel), 201);
     }
@@ -146,6 +166,12 @@ class BookingController extends Controller
             return response()->json(['detail' => 'Jadwal baru tidak ditemukan'], 404);
         }
 
+        // Validasi: jadwal baru tidak boleh sudah lewat
+        $newDepartDate = Carbon::parse($newSched->depart_date)->startOfDay();
+        if ($newDepartDate->lt(Carbon::today())) {
+            return response()->json(['detail' => 'Tidak dapat reschedule ke jadwal yang sudah lewat'], 400);
+        }
+
         if ($newSched->origin !== $booking->origin || $newSched->destination !== $booking->destination) {
             return response()->json(['detail' => 'Rute jadwal baru harus sama dengan booking asli'], 400);
         }
@@ -204,6 +230,14 @@ class BookingController extends Controller
         $booking->refresh();
         $travel = Travel::where('uid', $booking->travel_uid)->first();
 
+        // Kirim email reschedule
+        try {
+            $owner = User::where('uid', $booking->user_uid)->first();
+            if ($owner?->email) {
+                Mail::to($owner->email)->send(new BookingRescheduled($booking, $travel));
+            }
+        } catch (\Exception) {}
+
         return response()->json($booking->toApiArray($travel));
     }
 
@@ -234,6 +268,14 @@ class BookingController extends Controller
         ]);
 
         $booking->refresh();
+
+        // Kirim email pembatalan
+        try {
+            $owner = User::where('uid', $booking->user_uid)->first();
+            if ($owner?->email) {
+                Mail::to($owner->email)->send(new BookingCancelled($booking));
+            }
+        } catch (\Exception) {}
 
         return response()->json($booking->toApiArray());
     }
